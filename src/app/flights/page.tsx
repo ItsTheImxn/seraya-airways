@@ -76,9 +76,24 @@ function ResultsContent() {
     cabin === "Business" ? 2.5 :
     cabin === "First Class" ? 4 : 1;
 
-  function chooseFlight(number: string) {
-    setSelected(number);
-  }
+  function chooseFlight(flight: typeof flights[number]) {
+  const params = new URLSearchParams({
+    from,
+    to,
+    depart,
+    return: returnDate,
+    trip,
+    passengers,
+    cabin,
+    flight: flight.number,
+    aircraft: flight.aircraft,
+    departure: flight.departure,
+    arrival: flight.arrival,
+    fare: String(Math.round(flight.price * multiplier)),
+  });
+
+  window.location.href = `/booking?${params.toString()}`;
+}
 
   return (
     <main style={{ background: "#f8f6f1", minHeight: "100vh" }}>
