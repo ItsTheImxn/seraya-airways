@@ -1,7 +1,8 @@
 
 "use client";
 
-import { useState, type FormEvent, Suspense } from "react";
+import { useState, type FormEvent } from "react";
+import { Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 
 const occupiedSeats = ["1B", "2C", "3D", "4A", "5B", "6C"];
@@ -35,7 +36,10 @@ function BookingContent() {
   const [phone, setPhone] = useState("");
   const [error, setError] = useState("");
 
-  const baggagePrice = baggage === "20" ? 55 : baggage === "30" ? 85 : 0;
+  const baggagePrice =
+    baggage === "20" ? 55 :
+    baggage === "30" ? 85 : 0;
+
   const mealPrice = meal === "Premium meal" ? 25 : 0;
 
   const seatPrice = selectedSeats.filter(
@@ -43,9 +47,12 @@ function BookingContent() {
   ).length * 45;
 
   const journeyMultiplier = trip === "Return" ? 2 : 1;
+
   const baseTotal = fare * passengerCount * journeyMultiplier;
+
   const extrasTotal =
     (baggagePrice + mealPrice) * passengerCount + seatPrice;
+
   const total = baseTotal + extrasTotal;
 
   function toggleSeat(seat: string) {
@@ -102,23 +109,9 @@ function BookingContent() {
     router.push(`/payment?${paymentDetails.toString()}`);
   }
 
-  const cardStyle = {
-    background: "white",
-    borderRadius: "10px",
-    padding: "25px",
-    marginBottom: "20px",
-    boxShadow: "0 3px 15px #00000008",
-  };
-
-  const headingStyle = {
-    fontFamily: "Georgia, serif",
-    fontWeight: 400 as const,
-    fontSize: "24px",
-  };
-
   const labelStyle = {
     display: "block",
-    marginTop: "20px",
+    marginTop: "18px",
     fontSize: "12px",
     fontWeight: "bold" as const,
     letterSpacing: "1px",
@@ -135,21 +128,17 @@ function BookingContent() {
     fontSize: "15px",
   };
 
-  const summaryRow = {
-    display: "flex",
-    justifyContent: "space-between",
-    gap: "12px",
-    marginTop: "16px",
-    fontSize: "14px",
-  };
-
   return (
-    <main style={{ minHeight: "100vh", background: "#f8f6f1" }}>
+    <main style={{
+      minHeight: "100vh",
+      background: "#f8f6f1",
+    }}>
       <header>
         <a href="/" className="brand">
           SERAYA
           <small>AIRWAYS</small>
         </a>
+
         <nav>
           <a href="/">Home</a>
           <a href="/manage-booking">Manage booking</a>
@@ -164,6 +153,7 @@ function BookingContent() {
         <div className="eyebrow" style={{ color: "#d6ad70" }}>
           YOUR JOURNEY
         </div>
+
         <h1 style={{
           fontFamily: "Georgia, serif",
           fontWeight: 400,
@@ -171,6 +161,7 @@ function BookingContent() {
         }}>
           Complete your booking
         </h1>
+
         <p>{from} → {to} · {flight}</p>
       </section>
 
@@ -181,6 +172,7 @@ function BookingContent() {
       }}>
         <section style={cardStyle}>
           <h2 style={headingStyle}>Your flight</h2>
+
           <div style={{
             display: "flex",
             justifyContent: "space-between",
@@ -192,16 +184,20 @@ function BookingContent() {
               <h2>{departure}</h2>
               <strong>{from}</strong>
             </div>
+
             <div>
               <p>{flight}</p>
               <small>{aircraft}</small>
             </div>
+
             <div>
               <h2>{arrival}</h2>
               <strong>{to}</strong>
             </div>
           </div>
+
           <hr style={{ margin: "20px 0", borderColor: "#eee" }} />
+
           <p>Departure: {depart}</p>
           {trip === "Return" && <p>Return: {returnDate}</p>}
           <p>Passengers: {passengers}</p>
@@ -210,8 +206,10 @@ function BookingContent() {
 
         <section style={cardStyle}>
           <h2 style={headingStyle}>01 · Select your seats</h2>
+
           <p style={{ color: "#777", margin: "10px 0 20px" }}>
-            Select {passengerCount} seat(s). Rows 1–2 have an additional RM45 charge each.
+            Select {passengerCount} seat(s). Rows 1–2 have an
+            additional RM45 seat charge each.
           </p>
 
           <div style={{
@@ -233,10 +231,12 @@ function BookingContent() {
 
             {Array.from({ length: 8 }, (_, index) => {
               const row = index + 1;
+
               return (
                 <div key={row} style={{
                   display: "flex",
                   justifyContent: "center",
+                  alignItems: "center",
                   gap: "8px",
                   marginBottom: "9px",
                 }}>
@@ -258,7 +258,9 @@ function BookingContent() {
                           border: "1px solid #ddd",
                           background: occupied
                             ? "#d7d3cc"
-                            : selected ? "#98703e" : "white",
+                            : selected
+                            ? "#98703e"
+                            : "white",
                           color: selected ? "white" : "#333",
                           cursor: occupied ? "not-allowed" : "pointer",
                           fontWeight: "bold",
@@ -294,6 +296,7 @@ function BookingContent() {
 
         <section style={cardStyle}>
           <h2 style={headingStyle}>02 · Baggage allowance</h2>
+
           <p style={{ color: "#777", margin: "10px 0 20px" }}>
             Choose a checked baggage package per passenger.
           </p>
@@ -333,9 +336,11 @@ function BookingContent() {
 
         <section style={cardStyle}>
           <h2 style={headingStyle}>03 · In-flight dining</h2>
+
           <p style={{ color: "#777", margin: "10px 0 20px" }}>
             Choose your preferred meal per passenger.
           </p>
+
           <label style={labelStyle}>
             MEAL SELECTION
             <select
@@ -348,14 +353,17 @@ function BookingContent() {
               <option>No meal</option>
             </select>
           </label>
+
           <p style={{ color: "#777", fontSize: "13px", marginTop: "10px" }}>
-            Standard meal: Included · Premium meal: RM25 per passenger · No meal: Included
+            Standard meal: Included · Premium meal: RM25 per passenger
+            · No meal: Included
           </p>
         </section>
 
         <form onSubmit={createBooking}>
           <section style={cardStyle}>
             <h2 style={headingStyle}>04 · Passenger information</h2>
+
             <p style={{ color: "#777", marginTop: "10px" }}>
               Use fictional details for this Roblox roleplay demonstration.
             </p>
@@ -403,14 +411,17 @@ function BookingContent() {
               <span>Flight fare × {passengerCount} × {journeyMultiplier}</span>
               <strong>RM {baseTotal.toLocaleString("en-MY")}</strong>
             </div>
+
             <div style={summaryRow}>
               <span>Checked baggage</span>
               <strong>RM {(baggagePrice * passengerCount).toLocaleString("en-MY")}</strong>
             </div>
+
             <div style={summaryRow}>
               <span>Meals</span>
               <strong>RM {(mealPrice * passengerCount).toLocaleString("en-MY")}</strong>
             </div>
+
             <div style={summaryRow}>
               <span>Seat selection</span>
               <strong>RM {seatPrice.toLocaleString("en-MY")}</strong>
@@ -430,7 +441,9 @@ function BookingContent() {
             </div>
 
             {error && (
-              <p style={{ color: "#b33", marginTop: "15px" }}>{error}</p>
+              <p style={{ color: "#b33", marginTop: "15px" }}>
+                {error}
+              </p>
             )}
 
             <button type="submit" style={{
@@ -454,7 +467,7 @@ function BookingContent() {
               fontSize: "11px",
               marginTop: "15px",
             }}>
-              Demonstration only. No real payment will be collected.
+              No real payment will be collected.
             </p>
           </section>
         </form>
@@ -472,6 +485,28 @@ function BookingContent() {
     </main>
   );
 }
+
+const cardStyle = {
+  background: "white",
+  borderRadius: "10px",
+  padding: "25px",
+  marginBottom: "20px",
+  boxShadow: "0 3px 15px #00000008",
+};
+
+const headingStyle = {
+  fontFamily: "Georgia, serif",
+  fontWeight: 400 as const,
+  fontSize: "24px",
+};
+
+const summaryRow = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: "12px",
+  marginTop: "16px",
+  fontSize: "14px",
+};
 
 export default function BookingPage() {
   return (
