@@ -1,8 +1,22 @@
 
 "use client";
 
-import { Suspense, useState } from "react";
+import { useState, type FormEvent } from "react";
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+
+const seats = [
+  "1A", "1B", "1C", "1D",
+  "2A", "2B", "2C", "2D",
+  "3A", "3B", "3C", "3D",
+  "4A", "4B", "4C", "4D",
+  "5A", "5B", "5C", "5D",
+  "6A", "6B", "6C", "6D",
+  "7A", "7B", "7C", "7D",
+  "8A", "8B", "8C", "8D",
+];
+
+const occupiedSeats = ["1B", "2C", "3D", "4A", "5B", "6C"];
 
 function BookingContent() {
   const params = useSearchParams();
@@ -20,14 +34,64 @@ function BookingContent() {
   const arrival = params.get("arrival") || "09:40";
   const fare = Number(params.get("fare")) || 189;
 
+  const passengerCount = passengers.includes("2 Adults, 1 Child")
+    ? 3
+    : Number(passengers.match(/\d+/)?.[0] || 1);
+
+  const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
+  const [baggage, setBaggage] = useState("20");
+  const [meal, setMeal] = useState("Standard meal");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [nationality, setNationality] = useState("Malaysian");
+  const [error, setError] = useState("");
   const [reference, setReference] = useState("");
 
-  function createBooking(e: React.FormEvent<HTMLFormElement>) {
+  const baggagePrice =
+    baggage === "20" ? 55 :
+    baggage === "30" ? 85 : 0;
+
+  const mealPrice = meal === "Premium meal" ? 25 : 0;
+
+  const seatPrice = selectedSeats.filter(
+    seat => Number(seat[0]) <= 2
+  ).length * 45;
+
+  const journeyMultiplier = trip === "Return" ? 2 : 1;
+
+  const baseTotal = fare * passengerCount * journeyMultiplier;
+
+  const extrasTotal =
+    (baggagePrice + mealPrice) * passengerCount + seatPrice;
+
+  const total = baseTotal + extrasTotal;
+
+  function toggleSeat(seat: string) {
+    if (occupiedSeats.includes(seat)) return;
+
+    setError("");
+
+    setSelectedSeats(current => {
+      if (current.includes(seat)) {
+        return current.filter(item => item !== seat);
+      }
+
+      if (current.length >= passengerCount) {
+        setError(`You can only select ${passengerCount} seats.`);
+        return current;
+      }
+
+      return [...current, seat];
+    });
+  }
+
+  function createBooking(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+
+    if (selectedSeats.length !== passengerCount) {
+      setError(`Please select ${passengerCount} seats.`);
+      return;
+    }
 
     const pnr = Math.random()
       .toString(36)
@@ -35,14 +99,34 @@ function BookingContent() {
       .toUpperCase();
 
     setReference(pnr);
+    setError("");
   }
+
+  const labelStyle = {
+    display: "block",
+    marginTop: "18px",
+    fontSize: "12px",
+    fontWeight: "bold" as const,
+    letterSpacing: "1px",
+  };
+
+  const inputStyle = {
+    display: "block",
+    width: "100%",
+    padding: "13px",
+    marginTop: "8px",
+    border: "1px solid #ddd5c8",
+    borderRadius: "5px",
+    background: "white",
+    fontSize: "15px",
+  };
 
   if (reference) {
     return (
       <main style={{
         minHeight: "100vh",
         background: "#f8f6f1",
-        padding: "50px 20px",
+        padding: "45px 20px",
       }}>
         <div style={{
           maxWidth: "650px",
@@ -52,20 +136,23 @@ function BookingContent() {
           borderRadius: "12px",
           textAlign: "center",
         }}>
-          <div style={{ fontSize: "45px" }}>✓</div>
+          <div style={{ fontSize: "45px", color: "#65866b" }}>
+            ✓
+          </div>
 
-          <p style={{ color: "#94703f" }}>
+          <p style={{ color: "#98703e", letterSpacing: "3px" }}>
             SERAYA AIRWAYS
           </p>
 
           <h1 style={{
             fontFamily: "Georgia, serif",
             fontWeight: 400,
+            fontSize: "34px",
           }}>
             Booking created
           </h1>
 
-          <p>Your demonstration booking has been created.</p>
+          <p>Your demonstration booking is ready.</p>
 
           <div style={{
             background: "#f3eee5",
@@ -83,18 +170,36 @@ function BookingContent() {
             </h1>
           </div>
 
-          <p><strong>{name}</strong></p>
-          <p>{from} → {to}</p>
-          <p>{flight} · {cabin}</p>
-          <p>{depart}</p>
+          <div style={{ textAlign: "left", lineHeight: 2 }}>
+            <p><strong>Passenger:</strong> {name}</p>
+            <p><strong>Email:</strong> {email}</p>
+            <p><strong>Flight:</strong> {flight}</p>
+            <p><strong>Route:</strong> {from} → {to}</p>
+            <p><strong>Departure:</strong> {depart}</p>
+            {trip === "Return" && (
+              <p><strong>Return:</strong> {returnDate}</p>
+            )}
+            <p><strong>Aircraft:</strong> {aircraft}</p>
+            <p><strong>Cabin:</strong> {cabin}</p>
+            <p><strong>Seats:</strong> {selectedSeats.join(", ")}</p>
+            <p><strong>Baggage:</strong> {baggage} kg per passenger</p>
+            <p><strong>Meal:</strong> {meal}</p>
+          </div>
 
-          <h2 style={{ marginTop: "20px" }}>
-            RM {fare.toLocaleString("en-MY")}
-          </h2>
+          <hr style={{ margin: "20px 0", borderColor: "#eee" }} />
 
-          <p style={{ color: "#888", fontSize: "12px" }}>
-            Demonstration only. This is not a real ticket or confirmed
-            airline reservation.
+          <p>DEMONSTRATION BOOKING TOTAL</p>
+          <h1 style={{ color: "#98703e" }}>
+            RM {total.toLocaleString("en-MY")}
+          </h1>
+
+          <p style={{
+            color: "#888",
+            fontSize: "12px",
+            marginTop: "20px",
+          }}>
+            This is a fictional booking confirmation.
+            No real reservation or payment has been made.
           </p>
 
           <a href="/" style={{
@@ -136,7 +241,7 @@ function BookingContent() {
         padding: "45px 7%",
       }}>
         <div className="eyebrow" style={{ color: "#d6ad70" }}>
-          COMPLETE YOUR JOURNEY
+          YOUR JOURNEY
         </div>
 
         <h1 style={{
@@ -144,33 +249,26 @@ function BookingContent() {
           fontWeight: 400,
           fontSize: "40px",
         }}>
-          Passenger details
+          Complete your booking
         </h1>
 
         <p>{from} → {to} · {flight}</p>
       </section>
 
       <div style={{
-        maxWidth: "850px",
+        maxWidth: "900px",
         margin: "auto",
         padding: "35px 20px",
       }}>
-        <section style={{
-          background: "white",
-          borderRadius: "10px",
-          padding: "25px",
-          marginBottom: "20px",
-        }}>
-          <h2 style={{ fontFamily: "Georgia, serif" }}>
-            Your flight
-          </h2>
+        <section style={cardStyle}>
+          <h2 style={headingStyle}>Your flight</h2>
 
           <div style={{
             display: "flex",
             justifyContent: "space-between",
-            marginTop: "20px",
             flexWrap: "wrap",
             gap: "15px",
+            marginTop: "20px",
           }}>
             <div>
               <h2>{departure}</h2>
@@ -194,28 +292,174 @@ function BookingContent() {
           {trip === "Return" && <p>Return: {returnDate}</p>}
           <p>Passengers: {passengers}</p>
           <p>Cabin: {cabin}</p>
-          <p style={{ marginTop: "12px" }}>
-            <strong>Sample fare: RM {fare.toLocaleString("en-MY")}</strong>
+        </section>
+
+        <section style={cardStyle}>
+          <h2 style={headingStyle}>01 · Select your seats</h2>
+
+          <p style={{ color: "#777", margin: "10px 0 20px" }}>
+            Select {passengerCount} seat(s). Rows 1–2 have an
+            additional RM45 seat charge each.
+          </p>
+
+          <div style={{
+            maxWidth: "340px",
+            margin: "auto",
+            border: "1px solid #e5ded2",
+            borderRadius: "100px 100px 15px 15px",
+            padding: "25px 15px",
+          }}>
+            <p style={{
+              textAlign: "center",
+              color: "#98703e",
+              marginBottom: "25px",
+              letterSpacing: "2px",
+              fontSize: "12px",
+            }}>
+              FRONT OF AIRCRAFT
+            </p>
+
+            {Array.from({ length: 8 }, (_, index) => {
+              const row = index + 1;
+
+              return (
+                <div key={row} style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  gap: "8px",
+                  marginBottom: "9px",
+                }}>
+                  {["A", "B", "C", "D"].map(letter => {
+                    const seat = `${row}${letter}`;
+                    const occupied = occupiedSeats.includes(seat);
+                    const selected = selectedSeats.includes(seat);
+
+                    return (
+                      <button
+                        key={seat}
+                        type="button"
+                        onClick={() => toggleSeat(seat)}
+                        disabled={occupied}
+                        style={{
+                          width: "47px",
+                          height: "40px",
+                          borderRadius: "7px",
+                          border: "1px solid #ddd",
+                          background: occupied
+                            ? "#d7d3cc"
+                            : selected
+                            ? "#98703e"
+                            : "white",
+                          color: selected ? "white" : "#333",
+                          cursor: occupied ? "not-allowed" : "pointer",
+                          fontWeight: "bold",
+                        }}
+                      >
+                        {seat}
+                      </button>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
+
+          <div style={{
+            display: "flex",
+            justifyContent: "center",
+            gap: "15px",
+            flexWrap: "wrap",
+            marginTop: "20px",
+            fontSize: "12px",
+          }}>
+            <span>□ Available</span>
+            <span>■ Occupied</span>
+            <span style={{ color: "#98703e" }}>■ Selected</span>
+          </div>
+
+          <p style={{ marginTop: "18px" }}>
+            Selected: {selectedSeats.length}/{passengerCount}
+            {selectedSeats.length > 0 && ` · ${selectedSeats.join(", ")}`}
+          </p>
+        </section>
+
+        <section style={cardStyle}>
+          <h2 style={headingStyle}>02 · Baggage allowance</h2>
+
+          <p style={{ color: "#777", margin: "10px 0 20px" }}>
+            Choose a checked baggage package per passenger.
+          </p>
+
+          {[
+            { value: "0", title: "Cabin baggage only", price: "Included" },
+            { value: "20", title: "20 kg checked baggage", price: "RM55" },
+            { value: "30", title: "30 kg checked baggage", price: "RM85" },
+          ].map(option => (
+            <label key={option.value} style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              padding: "15px",
+              border: baggage === option.value
+                ? "2px solid #98703e"
+                : "1px solid #e5ded2",
+              borderRadius: "7px",
+              marginTop: "10px",
+              cursor: "pointer",
+              gap: "10px",
+            }}>
+              <span>
+                <input
+                  type="radio"
+                  name="baggage"
+                  value={option.value}
+                  checked={baggage === option.value}
+                  onChange={e => setBaggage(e.target.value)}
+                />{" "}
+                {option.title}
+              </span>
+              <strong>{option.price}</strong>
+            </label>
+          ))}
+        </section>
+
+        <section style={cardStyle}>
+          <h2 style={headingStyle}>03 · In-flight dining</h2>
+
+          <p style={{ color: "#777", margin: "10px 0 20px" }}>
+            Choose your preferred meal per passenger.
+          </p>
+
+          <label style={labelStyle}>
+            MEAL SELECTION
+            <select
+              value={meal}
+              onChange={e => setMeal(e.target.value)}
+              style={inputStyle}
+            >
+              <option>Standard meal</option>
+              <option>Premium meal</option>
+              <option>No meal</option>
+            </select>
+          </label>
+
+          <p style={{ color: "#777", fontSize: "13px", marginTop: "10px" }}>
+            Standard meal: Included · Premium meal: RM25 per passenger
+            · No meal: Included
           </p>
         </section>
 
         <form onSubmit={createBooking}>
-          <section style={{
-            background: "white",
-            borderRadius: "10px",
-            padding: "25px",
-          }}>
-            <h2 style={{ fontFamily: "Georgia, serif" }}>
-              Passenger information
-            </h2>
+          <section style={cardStyle}>
+            <h2 style={headingStyle}>04 · Passenger information</h2>
 
-            <p style={{ color: "#777", margin: "10px 0 20px" }}>
-              Enter demonstration details to create your booking.
-              Do not use real personal information.
+            <p style={{ color: "#777", marginTop: "10px" }}>
+              Use fictional details for this Roblox roleplay demonstration.
             </p>
 
             <label style={labelStyle}>
-              FULL NAME
+              PASSENGER NAME
               <input
                 required
                 value={name}
@@ -248,59 +492,113 @@ function BookingContent() {
                 style={inputStyle}
               />
             </label>
+          </section>
 
-            <label style={labelStyle}>
-              NATIONALITY
-              <select
-                value={nationality}
-                onChange={e => setNationality(e.target.value)}
-                style={inputStyle}
-              >
-                <option>Malaysian</option>
-                <option>Singaporean</option>
-                <option>Indonesian</option>
-                <option>Other</option>
-              </select>
-            </label>
+          <section style={cardStyle}>
+            <h2 style={headingStyle}>05 · Fare summary</h2>
+
+            <div style={summaryRow}>
+              <span>Flight fare × {passengerCount} × {journeyMultiplier}</span>
+              <strong>RM {baseTotal.toLocaleString("en-MY")}</strong>
+            </div>
+
+            <div style={summaryRow}>
+              <span>Checked baggage</span>
+              <strong>RM {(baggagePrice * passengerCount).toLocaleString("en-MY")}</strong>
+            </div>
+
+            <div style={summaryRow}>
+              <span>Meals</span>
+              <strong>RM {(mealPrice * passengerCount).toLocaleString("en-MY")}</strong>
+            </div>
+
+            <div style={summaryRow}>
+              <span>Seat selection</span>
+              <strong>RM {seatPrice.toLocaleString("en-MY")}</strong>
+            </div>
+
+            <hr style={{ margin: "20px 0", borderColor: "#eee" }} />
+
+            <div style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}>
+              <strong>TOTAL</strong>
+              <h2 style={{ color: "#98703e" }}>
+                RM {total.toLocaleString("en-MY")}
+              </h2>
+            </div>
+
+            {error && (
+              <p style={{ color: "#b33", marginTop: "15px" }}>
+                {error}
+              </p>
+            )}
 
             <button type="submit" style={{
               width: "100%",
-              padding: "16px",
+              padding: "17px",
               background: "#98703e",
               color: "white",
               border: "none",
               borderRadius: "5px",
-              marginTop: "20px",
+              marginTop: "25px",
               cursor: "pointer",
               fontWeight: "bold",
+              letterSpacing: "1px",
             }}>
-              CREATE DEMONSTRATION BOOKING →
+              CONTINUE TO BOOKING CONFIRMATION →
             </button>
+
+            <p style={{
+              textAlign: "center",
+              color: "#888",
+              fontSize: "11px",
+              marginTop: "15px",
+            }}>
+              No real payment will be collected.
+            </p>
           </section>
         </form>
-
-        <p style={{
-          textAlign: "center",
-          color: "#888",
-          fontSize: "12px",
-          marginTop: "25px",
-        }}>
-          Seraya Airways · Fictional airline project
-        </p>
       </div>
+
+      <footer>
+        <a href="/" className="brand">
+          SERAYA
+          <small>AIRWAYS</small>
+        </a>
+        <div className="footer-bottom">
+          © 2026 Seraya Airways · Fictional airline project
+        </div>
+      </footer>
     </main>
   );
 }
 
-const labelStyle: React.CSSProperties = {
+const cardStyle = {
+  background: "white",
+  borderRadius: "10px",
+  padding: "25px",
+  marginBottom: "20px",
+  boxShadow: "0 3px 15px #00000008",
+};
+
+const headingStyle = {
+  fontFamily: "Georgia, serif",
+  fontWeight: 400 as const,
+  fontSize: "24px",
+};
+
+const labelStyle = {
   display: "block",
   marginTop: "20px",
   fontSize: "12px",
-  fontWeight: "bold",
+  fontWeight: "bold" as const,
   letterSpacing: "1px",
 };
 
-const inputStyle: React.CSSProperties = {
+const inputStyle = {
   display: "block",
   width: "100%",
   padding: "13px",
@@ -309,6 +607,14 @@ const inputStyle: React.CSSProperties = {
   borderRadius: "5px",
   background: "white",
   fontSize: "15px",
+};
+
+const summaryRow = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: "12px",
+  marginTop: "16px",
+  fontSize: "14px",
 };
 
 export default function BookingPage() {
