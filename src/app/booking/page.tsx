@@ -478,7 +478,7 @@ function createBooking(e: FormEvent<HTMLFormElement>) {
               fontWeight: "bold",
               letterSpacing: "1px",
             }}>
-              CONTINUE TO BOOKING CONFIRMATION →
+              CONTINUE TO PAYMEMT →
             </button>
 
             <p style={{
