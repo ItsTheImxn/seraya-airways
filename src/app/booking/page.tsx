@@ -20,6 +20,7 @@ const occupiedSeats = ["1B", "2C", "3D", "4A", "5B", "6C"];
 
 function BookingContent() {
   const params = useSearchParams();
+  const router = useRouter();
 
   const from = params.get("from") || "KUL";
   const to = params.get("to") || "BKI";
@@ -45,7 +46,6 @@ function BookingContent() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [error, setError] = useState("");
-  const [reference, setReference] = useState("");
 
   const baggagePrice =
     baggage === "20" ? 55 :
@@ -85,13 +85,40 @@ function BookingContent() {
     });
   }
 
-  function createBooking(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+function createBooking(e: FormEvent<HTMLFormElement>) {
+  e.preventDefault();
 
-    if (selectedSeats.length !== passengerCount) {
-      setError(`Please select ${passengerCount} seats.`);
-      return;
-    }
+  if (selectedSeats.length !== passengerCount) {
+    setError(`Please select ${passengerCount} seats.`);
+    return;
+  }
+
+  setError("");
+
+  const paymentDetails = new URLSearchParams({
+    from,
+    to,
+    depart,
+    return: returnDate,
+    trip,
+    passengers,
+    cabin,
+    flight,
+    aircraft,
+    departure,
+    arrival,
+    fare: String(fare),
+    name,
+    email,
+    phone,
+    seats: selectedSeats.join(","),
+    baggage,
+    meal,
+    total: String(total),
+  });
+
+  router.push(`/payment?${paymentDetails.toString()}`);
+}
 
     const pnr = Math.random()
       .toString(36)
@@ -120,103 +147,6 @@ function BookingContent() {
     background: "white",
     fontSize: "15px",
   };
-
-  if (reference) {
-    return (
-      <main style={{
-        minHeight: "100vh",
-        background: "#f8f6f1",
-        padding: "45px 20px",
-      }}>
-        <div style={{
-          maxWidth: "650px",
-          margin: "auto",
-          background: "white",
-          padding: "35px",
-          borderRadius: "12px",
-          textAlign: "center",
-        }}>
-          <div style={{ fontSize: "45px", color: "#65866b" }}>
-            ✓
-          </div>
-
-          <p style={{ color: "#98703e", letterSpacing: "3px" }}>
-            SERAYA AIRWAYS
-          </p>
-
-          <h1 style={{
-            fontFamily: "Georgia, serif",
-            fontWeight: 400,
-            fontSize: "34px",
-          }}>
-            Booking created
-          </h1>
-
-          <p>Your demonstration booking is ready.</p>
-
-          <div style={{
-            background: "#f3eee5",
-            padding: "25px",
-            margin: "25px 0",
-            borderRadius: "8px",
-          }}>
-            <small>BOOKING REFERENCE</small>
-            <h1 style={{
-              letterSpacing: "6px",
-              fontSize: "32px",
-              margin: "10px",
-            }}>
-              {reference}
-            </h1>
-          </div>
-
-          <div style={{ textAlign: "left", lineHeight: 2 }}>
-            <p><strong>Passenger:</strong> {name}</p>
-            <p><strong>Email:</strong> {email}</p>
-            <p><strong>Flight:</strong> {flight}</p>
-            <p><strong>Route:</strong> {from} → {to}</p>
-            <p><strong>Departure:</strong> {depart}</p>
-            {trip === "Return" && (
-              <p><strong>Return:</strong> {returnDate}</p>
-            )}
-            <p><strong>Aircraft:</strong> {aircraft}</p>
-            <p><strong>Cabin:</strong> {cabin}</p>
-            <p><strong>Seats:</strong> {selectedSeats.join(", ")}</p>
-            <p><strong>Baggage:</strong> {baggage} kg per passenger</p>
-            <p><strong>Meal:</strong> {meal}</p>
-          </div>
-
-          <hr style={{ margin: "20px 0", borderColor: "#eee" }} />
-
-          <p>DEMONSTRATION BOOKING TOTAL</p>
-          <h1 style={{ color: "#98703e" }}>
-            RM {total.toLocaleString("en-MY")}
-          </h1>
-
-          <p style={{
-            color: "#888",
-            fontSize: "12px",
-            marginTop: "20px",
-          }}>
-            This is a fictional booking confirmation.
-            No real reservation or payment has been made.
-          </p>
-
-          <a href="/" style={{
-            display: "inline-block",
-            marginTop: "20px",
-            background: "#98703e",
-            color: "white",
-            padding: "13px 25px",
-            textDecoration: "none",
-            borderRadius: "5px",
-          }}>
-            Return home
-          </a>
-        </div>
-      </main>
-    );
-  }
 
   return (
     <main style={{
