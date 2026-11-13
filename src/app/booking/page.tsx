@@ -3,7 +3,7 @@
 
 import { useState, type FormEvent } from "react";
 import { Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 
 const seats = [
   "1A", "1B", "1C", "1D",
