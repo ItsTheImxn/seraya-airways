@@ -1,20 +1,8 @@
 
 "use client";
 
-import { useState, type FormEvent } from "react";
-import { Suspense } from "react";
+import { useState, type FormEvent, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-
-const seats = [
-  "1A", "1B", "1C", "1D",
-  "2A", "2B", "2C", "2D",
-  "3A", "3B", "3C", "3D",
-  "4A", "4B", "4C", "4D",
-  "5A", "5B", "5C", "5D",
-  "6A", "6B", "6C", "6D",
-  "7A", "7B", "7C", "7D",
-  "8A", "8B", "8C", "8D",
-];
 
 const occupiedSeats = ["1B", "2C", "3D", "4A", "5B", "6C"];
 
@@ -47,10 +35,7 @@ function BookingContent() {
   const [phone, setPhone] = useState("");
   const [error, setError] = useState("");
 
-  const baggagePrice =
-    baggage === "20" ? 55 :
-    baggage === "30" ? 85 : 0;
-
+  const baggagePrice = baggage === "20" ? 55 : baggage === "30" ? 85 : 0;
   const mealPrice = meal === "Premium meal" ? 25 : 0;
 
   const seatPrice = selectedSeats.filter(
@@ -58,12 +43,9 @@ function BookingContent() {
   ).length * 45;
 
   const journeyMultiplier = trip === "Return" ? 2 : 1;
-
   const baseTotal = fare * passengerCount * journeyMultiplier;
-
   const extrasTotal =
     (baggagePrice + mealPrice) * passengerCount + seatPrice;
-
   const total = baseTotal + extrasTotal;
 
   function toggleSeat(seat: string) {
@@ -85,53 +67,58 @@ function BookingContent() {
     });
   }
 
-function createBooking(e: FormEvent<HTMLFormElement>) {
-  e.preventDefault();
+  function createBooking(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
 
-  if (selectedSeats.length !== passengerCount) {
-    setError(`Please select ${passengerCount} seats.`);
-    return;
-  }
+    if (selectedSeats.length !== passengerCount) {
+      setError(`Please select ${passengerCount} seats.`);
+      return;
+    }
 
-  setError("");
-
-  const paymentDetails = new URLSearchParams({
-    from,
-    to,
-    depart,
-    return: returnDate,
-    trip,
-    passengers,
-    cabin,
-    flight,
-    aircraft,
-    departure,
-    arrival,
-    fare: String(fare),
-    name,
-    email,
-    phone,
-    seats: selectedSeats.join(","),
-    baggage,
-    meal,
-    total: String(total),
-  });
-
-  router.push(`/payment?${paymentDetails.toString()}`);
-}
-
-    const pnr = Math.random()
-      .toString(36)
-      .substring(2, 8)
-      .toUpperCase();
-
-    setReference(pnr);
     setError("");
+
+    const paymentDetails = new URLSearchParams({
+      from,
+      to,
+      depart,
+      return: returnDate,
+      trip,
+      passengers,
+      cabin,
+      flight,
+      aircraft,
+      departure,
+      arrival,
+      fare: String(fare),
+      name,
+      email,
+      phone,
+      seats: selectedSeats.join(","),
+      baggage,
+      meal,
+      total: String(total),
+    });
+
+    router.push(`/payment?${paymentDetails.toString()}`);
   }
+
+  const cardStyle = {
+    background: "white",
+    borderRadius: "10px",
+    padding: "25px",
+    marginBottom: "20px",
+    boxShadow: "0 3px 15px #00000008",
+  };
+
+  const headingStyle = {
+    fontFamily: "Georgia, serif",
+    fontWeight: 400 as const,
+    fontSize: "24px",
+  };
 
   const labelStyle = {
     display: "block",
-    marginTop: "18px",
+    marginTop: "20px",
     fontSize: "12px",
     fontWeight: "bold" as const,
     letterSpacing: "1px",
@@ -148,17 +135,21 @@ function createBooking(e: FormEvent<HTMLFormElement>) {
     fontSize: "15px",
   };
 
+  const summaryRow = {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: "12px",
+    marginTop: "16px",
+    fontSize: "14px",
+  };
+
   return (
-    <main style={{
-      minHeight: "100vh",
-      background: "#f8f6f1",
-    }}>
+    <main style={{ minHeight: "100vh", background: "#f8f6f1" }}>
       <header>
         <a href="/" className="brand">
           SERAYA
           <small>AIRWAYS</small>
         </a>
-
         <nav>
           <a href="/">Home</a>
           <a href="/manage-booking">Manage booking</a>
@@ -173,7 +164,6 @@ function createBooking(e: FormEvent<HTMLFormElement>) {
         <div className="eyebrow" style={{ color: "#d6ad70" }}>
           YOUR JOURNEY
         </div>
-
         <h1 style={{
           fontFamily: "Georgia, serif",
           fontWeight: 400,
@@ -181,7 +171,6 @@ function createBooking(e: FormEvent<HTMLFormElement>) {
         }}>
           Complete your booking
         </h1>
-
         <p>{from} → {to} · {flight}</p>
       </section>
 
@@ -192,7 +181,6 @@ function createBooking(e: FormEvent<HTMLFormElement>) {
       }}>
         <section style={cardStyle}>
           <h2 style={headingStyle}>Your flight</h2>
-
           <div style={{
             display: "flex",
             justifyContent: "space-between",
@@ -204,20 +192,16 @@ function createBooking(e: FormEvent<HTMLFormElement>) {
               <h2>{departure}</h2>
               <strong>{from}</strong>
             </div>
-
             <div>
               <p>{flight}</p>
               <small>{aircraft}</small>
             </div>
-
             <div>
               <h2>{arrival}</h2>
               <strong>{to}</strong>
             </div>
           </div>
-
           <hr style={{ margin: "20px 0", borderColor: "#eee" }} />
-
           <p>Departure: {depart}</p>
           {trip === "Return" && <p>Return: {returnDate}</p>}
           <p>Passengers: {passengers}</p>
@@ -226,10 +210,8 @@ function createBooking(e: FormEvent<HTMLFormElement>) {
 
         <section style={cardStyle}>
           <h2 style={headingStyle}>01 · Select your seats</h2>
-
           <p style={{ color: "#777", margin: "10px 0 20px" }}>
-            Select {passengerCount} seat(s). Rows 1–2 have an
-            additional RM45 seat charge each.
+            Select {passengerCount} seat(s). Rows 1–2 have an additional RM45 charge each.
           </p>
 
           <div style={{
@@ -251,12 +233,10 @@ function createBooking(e: FormEvent<HTMLFormElement>) {
 
             {Array.from({ length: 8 }, (_, index) => {
               const row = index + 1;
-
               return (
                 <div key={row} style={{
                   display: "flex",
                   justifyContent: "center",
-                  alignItems: "center",
                   gap: "8px",
                   marginBottom: "9px",
                 }}>
@@ -278,9 +258,7 @@ function createBooking(e: FormEvent<HTMLFormElement>) {
                           border: "1px solid #ddd",
                           background: occupied
                             ? "#d7d3cc"
-                            : selected
-                            ? "#98703e"
-                            : "white",
+                            : selected ? "#98703e" : "white",
                           color: selected ? "white" : "#333",
                           cursor: occupied ? "not-allowed" : "pointer",
                           fontWeight: "bold",
@@ -316,7 +294,6 @@ function createBooking(e: FormEvent<HTMLFormElement>) {
 
         <section style={cardStyle}>
           <h2 style={headingStyle}>02 · Baggage allowance</h2>
-
           <p style={{ color: "#777", margin: "10px 0 20px" }}>
             Choose a checked baggage package per passenger.
           </p>
@@ -356,11 +333,9 @@ function createBooking(e: FormEvent<HTMLFormElement>) {
 
         <section style={cardStyle}>
           <h2 style={headingStyle}>03 · In-flight dining</h2>
-
           <p style={{ color: "#777", margin: "10px 0 20px" }}>
             Choose your preferred meal per passenger.
           </p>
-
           <label style={labelStyle}>
             MEAL SELECTION
             <select
@@ -373,17 +348,14 @@ function createBooking(e: FormEvent<HTMLFormElement>) {
               <option>No meal</option>
             </select>
           </label>
-
           <p style={{ color: "#777", fontSize: "13px", marginTop: "10px" }}>
-            Standard meal: Included · Premium meal: RM25 per passenger
-            · No meal: Included
+            Standard meal: Included · Premium meal: RM25 per passenger · No meal: Included
           </p>
         </section>
 
         <form onSubmit={createBooking}>
           <section style={cardStyle}>
             <h2 style={headingStyle}>04 · Passenger information</h2>
-
             <p style={{ color: "#777", marginTop: "10px" }}>
               Use fictional details for this Roblox roleplay demonstration.
             </p>
@@ -431,17 +403,14 @@ function createBooking(e: FormEvent<HTMLFormElement>) {
               <span>Flight fare × {passengerCount} × {journeyMultiplier}</span>
               <strong>RM {baseTotal.toLocaleString("en-MY")}</strong>
             </div>
-
             <div style={summaryRow}>
               <span>Checked baggage</span>
               <strong>RM {(baggagePrice * passengerCount).toLocaleString("en-MY")}</strong>
             </div>
-
             <div style={summaryRow}>
               <span>Meals</span>
               <strong>RM {(mealPrice * passengerCount).toLocaleString("en-MY")}</strong>
             </div>
-
             <div style={summaryRow}>
               <span>Seat selection</span>
               <strong>RM {seatPrice.toLocaleString("en-MY")}</strong>
@@ -461,9 +430,7 @@ function createBooking(e: FormEvent<HTMLFormElement>) {
             </div>
 
             {error && (
-              <p style={{ color: "#b33", marginTop: "15px" }}>
-                {error}
-              </p>
+              <p style={{ color: "#b33", marginTop: "15px" }}>{error}</p>
             )}
 
             <button type="submit" style={{
@@ -478,7 +445,7 @@ function createBooking(e: FormEvent<HTMLFormElement>) {
               fontWeight: "bold",
               letterSpacing: "1px",
             }}>
-              CONTINUE TO PAYMEMT →
+              CONTINUE TO PAYMENT →
             </button>
 
             <p style={{
@@ -487,7 +454,7 @@ function createBooking(e: FormEvent<HTMLFormElement>) {
               fontSize: "11px",
               marginTop: "15px",
             }}>
-              No real payment will be collected.
+              Demonstration only. No real payment will be collected.
             </p>
           </section>
         </form>
@@ -505,47 +472,6 @@ function createBooking(e: FormEvent<HTMLFormElement>) {
     </main>
   );
 }
-
-const cardStyle = {
-  background: "white",
-  borderRadius: "10px",
-  padding: "25px",
-  marginBottom: "20px",
-  boxShadow: "0 3px 15px #00000008",
-};
-
-const headingStyle = {
-  fontFamily: "Georgia, serif",
-  fontWeight: 400 as const,
-  fontSize: "24px",
-};
-
-const labelStyle = {
-  display: "block",
-  marginTop: "20px",
-  fontSize: "12px",
-  fontWeight: "bold" as const,
-  letterSpacing: "1px",
-};
-
-const inputStyle = {
-  display: "block",
-  width: "100%",
-  padding: "13px",
-  marginTop: "8px",
-  border: "1px solid #ddd5c8",
-  borderRadius: "5px",
-  background: "white",
-  fontSize: "15px",
-};
-
-const summaryRow = {
-  display: "flex",
-  justifyContent: "space-between",
-  gap: "12px",
-  marginTop: "16px",
-  fontSize: "14px",
-};
 
 export default function BookingPage() {
   return (
