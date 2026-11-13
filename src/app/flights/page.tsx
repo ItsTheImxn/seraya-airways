@@ -300,7 +300,7 @@ function ResultsContent() {
                 </span>
 
                 <button
-                  onClick={() => chooseFlight(flight.number)}
+                  onClick={() => chooseFlight(flight)}
                   style={{
                     background: selected === flight.number
                       ? "#47724d"
