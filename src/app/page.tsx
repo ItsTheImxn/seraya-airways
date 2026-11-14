@@ -1,6 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+type BrandLogos = {
+  primary_logo_url: string | null;
+  alternate_logo_url: string | null;
+  wordmark_url: string | null;
+  }
 
 export default function HomePage() {
   const [trip, setTrip] = useState("Return");
