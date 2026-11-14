@@ -51,6 +51,8 @@ export async function POST(request: Request) {
     const supabaseUrl = process.env.SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     const discordSecret = process.env.DISCORD_CLIENT_SECRET;
+    const seriWebhookUrl = process.env.SERI_WEBHOOK_URL;
+    const bookingApiSecret = process.env.BOOKING_API_SECRET;
 
     if (!supabaseUrl || !supabaseKey) {
       return Response.json(
@@ -124,6 +126,74 @@ export async function POST(request: Request) {
         const rows = await response.json();
         const booking = rows[0];
 
+        let discordNotified = false;
+
+        if (
+          booking.discord_user_id &&
+          seriWebhookUrl &&
+          bookingApiSecret
+        ) {
+          try {
+            const webhookResponse = await fetch(
+              `${seriWebhookUrl.replace(/\/$/, "")}/webhook/booking`,
+              {
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${bookingApiSecret}`,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  pnr: booking.pnr,
+                  discord_user_id: booking.discord_user_id,
+                  passenger_name: booking.passenger_name,
+                  flight_number: booking.flight_number,
+                  origin: booking.origin,
+                  destination: booking.destination,
+                  departure_date: booking.departure_date,
+                }),
+                signal: AbortSignal.timeout(8000),
+                cache: "no-store",
+              }
+            );
+
+            if (webhookResponse.ok) {
+              discordNotified = true;
+
+              const updateResponse = await fetch(
+                `${baseUrl}/rest/v1/bookings?pnr=eq.${encodeURIComponent(booking.pnr)}`,
+                {
+                  method: "PATCH",
+                  headers: {
+                    apikey: supabaseKey,
+                    Authorization: `Bearer ${supabaseKey}`,
+                    "Content-Type": "application/json",
+                    Prefer: "return=minimal",
+                  },
+                  body: JSON.stringify({
+                    discord_notified: true,
+                  }),
+                  cache: "no-store",
+                }
+              );
+
+              if (!updateResponse.ok) {
+                console.error(
+                  "Could not update Discord notification status:",
+                  await updateResponse.text()
+                );
+              }
+            } else {
+              console.error(
+                "Seri webhook returned:",
+                webhookResponse.status,
+                await webhookResponse.text()
+              );
+            }
+          } catch (error) {
+            console.error("Seri notification failed:", error);
+          }
+        }
+
         return Response.json({
           success: true,
           booking: {
@@ -134,6 +204,7 @@ export async function POST(request: Request) {
             destination: booking.destination,
             departure_date: booking.departure_date,
             discord_linked: Boolean(booking.discord_user_id),
+            discord_notified: discordNotified,
           },
         });
       }
