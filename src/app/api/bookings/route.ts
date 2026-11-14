@@ -1,5 +1,6 @@
 
-import { randomInt } from "crypto";
+import { randomInt, createHmac, timingSafeEqual } from "crypto";
+import { cookies } from "next/headers";
 
 export const runtime = "nodejs";
 
@@ -14,10 +15,42 @@ function makePnr() {
   return value;
 }
 
+function getLinkedDiscordId(
+  cookieValue: string | undefined,
+  secret: string | undefined
+): string | null {
+  if (!cookieValue || !secret) return null;
+
+  const separator = cookieValue.lastIndexOf(".");
+  if (separator === -1) return null;
+
+  const discordId = cookieValue.slice(0, separator);
+  const signature = cookieValue.slice(separator + 1);
+
+  if (!/^\d+$/.test(discordId)) return null;
+
+  const expected = createHmac("sha256", secret)
+    .update(discordId)
+    .digest("hex");
+
+  const actualBuffer = Buffer.from(signature, "hex");
+  const expectedBuffer = Buffer.from(expected, "hex");
+
+  if (
+    actualBuffer.length !== expectedBuffer.length ||
+    !timingSafeEqual(actualBuffer, expectedBuffer)
+  ) {
+    return null;
+  }
+
+  return discordId;
+}
+
 export async function POST(request: Request) {
   try {
     const supabaseUrl = process.env.SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const discordSecret = process.env.DISCORD_CLIENT_SECRET;
 
     if (!supabaseUrl || !supabaseKey) {
       return Response.json(
@@ -25,6 +58,13 @@ export async function POST(request: Request) {
         { status: 500 }
       );
     }
+
+    const cookieStore = await cookies();
+
+    const discordUserId = getLinkedDiscordId(
+      cookieStore.get("seraya_discord")?.value,
+      discordSecret
+    );
 
     const body = await request.json();
 
@@ -69,6 +109,7 @@ export async function POST(request: Request) {
             pnr,
             passenger_name: name,
             passenger_email: email,
+            discord_user_id: discordUserId,
             flight_number: flight,
             origin: from,
             destination: to,
@@ -92,6 +133,7 @@ export async function POST(request: Request) {
             origin: booking.origin,
             destination: booking.destination,
             departure_date: booking.departure_date,
+            discord_linked: Boolean(booking.discord_user_id),
           },
         });
       }
@@ -110,7 +152,6 @@ export async function POST(request: Request) {
       { error: "Please try again." },
       { status: 503 }
     );
-
   } catch (error) {
     console.error(error);
 
