@@ -71,7 +71,7 @@ export default async function AdminPage() {
       title: "Website designer",
       description: "Edit pages, layouts, colours, typography, navigation and content.",
       symbol: "◇",
-      href: null,
+      href: "/admin/designer",
     },
     {
       title: "Bookings",
