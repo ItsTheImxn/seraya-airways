@@ -130,9 +130,12 @@ function PaymentContent() {
           </p>
 
           <p style={{ color: "#777", fontSize: "13px" }}>
-            Keep your PNR safe. Discord confirmation will
-            be connected in the next step.
-          </p>
+  {booking.discord_notified
+    ? "Your booking confirmation has been sent to your linked Discord account."
+    : booking.discord_linked
+      ? "Your booking is saved, but we couldn't deliver the Discord DM. Keep your PNR safe."
+      : "Link your Discord account to receive booking confirmations by DM."}
+</p>
 
           <button
             onClick={() => router.push("/")}
