@@ -1,0 +1,252 @@
+
+import { randomUUID } from "crypto";
+import { getAdminDiscordId } from "@/lib/admin";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+const BUCKET = "seraya-media";
+const MAX_FILE_SIZE = 8 * 1024 * 1024;
+
+const ALLOWED_TYPES: Record<string, string> = {
+  "image/png": "png",
+  "image/jpeg": "jpg",
+  "image/webp": "webp",
+  "image/gif": "gif",
+};
+
+function getConfig() {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!url || !key) {
+    throw new Error("Supabase Storage is not configured.");
+  }
+
+  return { url: url.replace(/\/$/, ""), key };
+}
+
+async function authorized() {
+  return Boolean(await getAdminDiscordId());
+}
+
+function publicUrl(path: string) {
+  const { url } = getConfig();
+
+  return `${url}/storage/v1/object/public/${BUCKET}/${path
+    .split("/")
+    .map(encodeURIComponent)
+    .join("/")}`;
+}
+
+// LIST MEDIA
+export async function GET() {
+  if (!(await authorized())) {
+    return Response.json({ error: "Unauthorized." }, { status: 401 });
+  }
+
+  try {
+    const { url, key } = getConfig();
+
+    const response = await fetch(
+      `${url}/storage/v1/object/list/${BUCKET}`,
+      {
+        method: "POST",
+        headers: {
+          apikey: key,
+          Authorization: `Bearer ${key}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          prefix: "",
+          limit: 100,
+          offset: 0,
+          sortBy: {
+            column: "created_at",
+            order: "desc",
+          },
+        }),
+        cache: "no-store",
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("Media list error:", data);
+      return Response.json(
+        { error: "Could not load media library." },
+        { status: 502 }
+      );
+    }
+
+    const files = (data || [])
+      .filter((file: { name?: string; id?: string }) => file.name && file.id)
+      .map((file: {
+        name: string;
+        id: string;
+        created_at?: string;
+        updated_at?: string;
+        metadata?: {
+          mimetype?: string;
+          size?: number;
+        };
+      }) => ({
+        name: file.name,
+        path: file.name,
+        url: publicUrl(file.name),
+        created_at: file.created_at || file.updated_at || null,
+        content_type: file.metadata?.mimetype || "unknown",
+        size: file.metadata?.size || 0,
+      }));
+
+    return Response.json({ files });
+  } catch (error) {
+    console.error("Media list error:", error);
+    return Response.json(
+      { error: "Media service unavailable." },
+      { status: 500 }
+    );
+  }
+}
+
+// UPLOAD MEDIA
+export async function POST(request: Request) {
+  if (!(await authorized())) {
+    return Response.json({ error: "Unauthorized." }, { status: 401 });
+  }
+
+  try {
+    const formData = await request.formData();
+    const file = formData.get("file");
+
+    if (!(file instanceof File)) {
+      return Response.json(
+        { error: "Please select a file to upload." },
+        { status: 400 }
+      );
+    }
+
+    const extension = ALLOWED_TYPES[file.type];
+
+    if (!extension) {
+      return Response.json(
+        { error: "Only PNG, JPG, WEBP and GIF images are supported." },
+        { status: 400 }
+      );
+    }
+
+    if (file.size === 0 || file.size > MAX_FILE_SIZE) {
+      return Response.json(
+        { error: "Files must be between 1 byte and 8 MB." },
+        { status: 400 }
+      );
+    }
+
+    const { url, key } = getConfig();
+
+    const filename = `${randomUUID()}.${extension}`;
+
+    const response = await fetch(
+      `${url}/storage/v1/object/${BUCKET}/${filename}`,
+      {
+        method: "POST",
+        headers: {
+          apikey: key,
+          Authorization: `Bearer ${key}`,
+          "Content-Type": file.type,
+          "Cache-Control": "3600",
+          "x-upsert": "false",
+        },
+        body: await file.arrayBuffer(),
+        cache: "no-store",
+      }
+    );
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      console.error("Media upload error:", data);
+      return Response.json(
+        { error: "Upload failed. Please try again." },
+        { status: 502 }
+      );
+    }
+
+    return Response.json(
+      {
+        success: true,
+        file: {
+          name: filename,
+          path: filename,
+          url: publicUrl(filename),
+          content_type: file.type,
+          size: file.size,
+        },
+      },
+      { status: 201 }
+    );
+  } catch (error) {
+    console.error("Media upload error:", error);
+    return Response.json(
+      { error: "Could not upload file." },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE MEDIA
+export async function DELETE(request: Request) {
+  if (!(await authorized())) {
+    return Response.json({ error: "Unauthorized." }, { status: 401 });
+  }
+
+  try {
+    const body = await request.json();
+    const path = String(body.path || "").trim();
+
+    // Only allow filenames generated by this upload endpoint.
+    if (!/^[a-f0-9-]{36}\.(png|jpg|webp|gif)$/.test(path)) {
+      return Response.json(
+        { error: "Invalid media file." },
+        { status: 400 }
+      );
+    }
+
+    const { url, key } = getConfig();
+
+    const response = await fetch(
+      `${url}/storage/v1/object/${BUCKET}`,
+      {
+        method: "DELETE",
+        headers: {
+          apikey: key,
+          Authorization: `Bearer ${key}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          prefixes: [path],
+        }),
+        cache: "no-store",
+      }
+    );
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      console.error("Media delete error:", data);
+      return Response.json(
+        { error: "Could not delete media file." },
+        { status: 502 }
+      );
+    }
+
+    return Response.json({ success: true });
+  } catch (error) {
+    console.error("Media delete error:", error);
+    return Response.json(
+      { error: "Could not delete media file." },
+      { status: 500 }
+    );
+  }
+}
