@@ -11,6 +11,8 @@ type SavedBooking = {
   origin: string;
   destination: string;
   departure_date: string;
+  discord_linked: boolean;
+  discord_notified: boolean;
 };
 
 function PaymentContent() {
@@ -61,7 +63,11 @@ function PaymentContent() {
         );
       }
 
-      setBooking(result.booking);
+      setBooking({
+        ...result.booking,
+        discord_linked: Boolean(result.booking.discord_linked),
+        discord_notified: Boolean(result.booking.discord_notified),
+      });
 
     } catch (err) {
       setError(
@@ -74,7 +80,7 @@ function PaymentContent() {
     }
   }
 
-  const card = {
+  const card: React.CSSProperties = {
     background: "white",
     padding: "25px",
     borderRadius: "10px",
@@ -130,12 +136,12 @@ function PaymentContent() {
           </p>
 
           <p style={{ color: "#777", fontSize: "13px" }}>
-  {booking.discord_notified
-    ? "Your booking confirmation has been sent to your linked Discord account."
-    : booking.discord_linked
-      ? "Your booking is saved, but we couldn't deliver the Discord DM. Keep your PNR safe."
-      : "Link your Discord account to receive booking confirmations by DM."}
-</p>
+            {booking.discord_notified
+              ? "Your booking confirmation has been sent to your linked Discord account."
+              : booking.discord_linked
+                ? "Your booking is saved, but we couldn't deliver the Discord DM. Keep your PNR safe."
+                : "Link your Discord account to receive booking confirmations by DM."}
+          </p>
 
           <button
             onClick={() => router.push("/")}
