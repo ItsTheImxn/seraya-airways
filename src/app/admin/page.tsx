@@ -65,31 +65,37 @@ export default async function AdminPage() {
       title: "Flight management",
       description: "Create routes, schedule flights, assign aircraft and manage fares.",
       symbol: "✈",
+      href: "/admin/flights",
     },
     {
       title: "Website designer",
       description: "Edit pages, layouts, colours, typography, navigation and content.",
       symbol: "◇",
+      href: null,
     },
     {
       title: "Bookings",
       description: "Search PNRs, review passenger details and manage booking status.",
       symbol: "▤",
+      href: null,
     },
     {
       title: "Staff & permissions",
       description: "Control who can access each area of the management portal.",
       symbol: "♙",
+      href: null,
     },
     {
       title: "Media library",
       description: "Organise banners, destination photography and brand assets.",
       symbol: "▧",
+      href: null,
     },
     {
       title: "Activity logs",
       description: "Review administrative changes and publishing history.",
       symbol: "◷",
+      href: null,
     },
   ];
 
@@ -217,48 +223,71 @@ export default async function AdminPage() {
           gridTemplateColumns: "repeat(auto-fit, minmax(245px, 1fr))",
           gap: "16px",
         }}>
-          {sections.map((item) => (
-            <div key={item.title} style={panelStyle}>
-              <div style={{
-                width: "42px",
-                height: "42px",
-                display: "grid",
-                placeItems: "center",
-                borderRadius: "10px",
-                background: "#f5efe5",
-                color: "#98703e",
-                fontSize: "22px",
-                marginBottom: "18px",
-              }}>
-                {item.symbol}
+          {sections.map((item) => {
+            const content = (
+              <>
+                <div style={{
+                  width: "42px",
+                  height: "42px",
+                  display: "grid",
+                  placeItems: "center",
+                  borderRadius: "10px",
+                  background: "#f5efe5",
+                  color: "#98703e",
+                  fontSize: "22px",
+                  marginBottom: "18px",
+                }}>
+                  {item.symbol}
+                </div>
+
+                <h3 style={{ margin: "0 0 8px", fontSize: "17px" }}>
+                  {item.title}
+                </h3>
+
+                <p style={{
+                  color: "#777",
+                  fontSize: "13px",
+                  lineHeight: 1.6,
+                  minHeight: "42px",
+                }}>
+                  {item.description}
+                </p>
+
+                <span style={{
+                  display: "inline-block",
+                  color: "#98703e",
+                  background: "#f7f1e7",
+                  borderRadius: "20px",
+                  padding: "6px 10px",
+                  fontSize: "11px",
+                  fontWeight: 700,
+                }}>
+                  {item.href ? "Open manager →" : "Coming next"}
+                </span>
+              </>
+            );
+
+            return item.href ? (
+              <a
+                key={item.title}
+                href={item.href}
+                style={{
+                  ...panelStyle,
+                  display: "block",
+                  color: "inherit",
+                  textDecoration: "none",
+                  cursor: "pointer",
+                  transition: "transform 0.2s, box-shadow 0.2s",
+                }}
+              >
+                {content}
+              </a>
+            ) : (
+              <div key={item.title} style={panelStyle}>
+                {content}
               </div>
-
-              <h3 style={{ margin: "0 0 8px", fontSize: "17px" }}>
-                {item.title}
-              </h3>
-
-              <p style={{
-                color: "#777",
-                fontSize: "13px",
-                lineHeight: 1.6,
-                minHeight: "42px",
-              }}>
-                {item.description}
-              </p>
-
-              <span style={{
-                display: "inline-block",
-                color: "#98703e",
-                background: "#f7f1e7",
-                borderRadius: "20px",
-                padding: "6px 10px",
-                fontSize: "11px",
-                fontWeight: 700,
-              }}>
-                Coming next
-              </span>
-            </div>
-          ))}
+            );
+          })}
         </section>
 
         <p style={{
