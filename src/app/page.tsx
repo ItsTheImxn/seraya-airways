@@ -17,6 +17,18 @@ export default function HomePage() {
   const [passengers, setPassengers] = useState("1 Adult");
   const [cabin, setCabin] = useState("Economy");
   const [notice, setNotice] = useState("");
+  const [brandLogos, setBrandLogos] = useState<BrandLogos | null>(null);
+
+  useEffect(() => {
+    fetch("/api/brand")
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.settings) {
+          setBrandLogos(data.settings);
+        }
+      })
+      .catch(console.error);
+  }, []);
 
   function swap() {
     setFrom(to);
@@ -62,10 +74,20 @@ export default function HomePage() {
   return (
     <main>
       <header>
-        <a href="/" className="brand">
-          SERAYA
-          <small>AIRWAYS</small>
-        </a>
+<a href="/" className="brand">
+  {brandLogos?.primary_logo_url ? (
+    <img
+      src={brandLogos.primary_logo_url}
+      alt="Seraya Airways"
+      className="site-logo"
+    />
+  ) : (
+    <>
+      SERAYA
+      <small>AIRWAYS</small>
+    </>
+  )}
+</a>
 
         <nav>
           <a href="#book">Book</a>
@@ -329,9 +351,23 @@ export default function HomePage() {
 
       <footer>
         <a href="/" className="brand">
-          SERAYA
-          <small>AIRWAYS</small>
-        </a>
+  {brandLogos?.wordmark_url || brandLogos?.primary_logo_url ? (
+    <img
+      src={
+        brandLogos?.wordmark_url ||
+        brandLogos?.primary_logo_url ||
+        ""
+      }
+      alt="Seraya Airways"
+      className="site-logo footer-logo"
+    />
+  ) : (
+    <>
+      SERAYA
+      <small>AIRWAYS</small>
+    </>
+  )}
+</a>
 
         <div className="footer-links">
           <a href="/about">About Seraya</a>
