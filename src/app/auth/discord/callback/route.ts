@@ -1,19 +1,19 @@
 
-import { createHmac, timingSafeEqual } from "crypto";
+import { createHmac } from "crypto";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
-function signDiscordId(discordId: string, secret: string) {
+function signDiscordId(id: string, secret: string) {
   return createHmac("sha256", secret)
-    .update(discordId)
+    .update(id)
     .digest("hex");
 }
 
 export async function GET(request: Request) {
   const cookieStore = await cookies();
-  const stateCookie = cookieStore.get("discord_oauth_state")?.value;
+  const savedState = cookieStore.get("discord_oauth_state")?.value;
 
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
@@ -23,12 +23,11 @@ export async function GET(request: Request) {
     const response = NextResponse.redirect(
       new URL(`/account?discord=${status}`, request.url)
     );
-
     response.cookies.delete("discord_oauth_state");
     return response;
   };
 
-  if (!code || !state || !stateCookie || state !== stateCookie) {
+  if (!code || !state || !savedState || state !== savedState) {
     return redirect("error");
   }
 
@@ -38,18 +37,11 @@ export async function GET(request: Request) {
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  if (
-    !clientId ||
-    !clientSecret ||
-    !redirectUri ||
-    !supabaseUrl ||
-    !supabaseKey
-  ) {
+  if (!clientId || !clientSecret || !redirectUri || !supabaseUrl || !supabaseKey) {
     return redirect("error");
   }
 
   try {
-    // Exchange the authorisation code for an access token.
     const tokenResponse = await fetch(
       "https://discord.com/api/oauth2/token",
       {
@@ -68,17 +60,12 @@ export async function GET(request: Request) {
       }
     );
 
-    if (!tokenResponse.ok) {
-      return redirect("error");
-    }
+    if (!tokenResponse.ok) return redirect("error");
 
     const tokenData = await tokenResponse.json();
 
-    if (!tokenData.access_token) {
-      return redirect("error");
-    }
+    if (!tokenData.access_token) return redirect("error");
 
-    // Retrieve the Discord user's identity.
     const userResponse = await fetch(
       "https://discord.com/api/users/@me",
       {
@@ -89,9 +76,7 @@ export async function GET(request: Request) {
       }
     );
 
-    if (!userResponse.ok) {
-      return redirect("error");
-    }
+    if (!userResponse.ok) return redirect("error");
 
     const user = await userResponse.json();
 
@@ -106,7 +91,6 @@ export async function GET(request: Request) {
       ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.${user.avatar.startsWith("a_") ? "gif" : "png"}`
       : null;
 
-    // Save the linked Discord account in Supabase.
     const databaseResponse = await fetch(
       `${supabaseUrl.replace(/\/$/, "")}/rest/v1/discord_links?on_conflict=discord_user_id`,
       {
@@ -127,11 +111,10 @@ export async function GET(request: Request) {
     );
 
     if (!databaseResponse.ok) {
-      console.error("Discord link database error:", await databaseResponse.text());
+      console.error("Discord database error:", await databaseResponse.text());
       return redirect("error");
     }
 
-    // Create a signed, HttpOnly browser cookie.
     const signature = signDiscordId(user.id, clientSecret);
 
     const response = NextResponse.redirect(
@@ -154,7 +137,7 @@ export async function GET(request: Request) {
 
     return response;
   } catch (error) {
-    console.error("Discord OAuth callback error:", error);
+    console.error("Discord callback error:", error);
     return redirect("error");
   }
 }
