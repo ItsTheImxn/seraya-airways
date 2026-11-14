@@ -97,6 +97,12 @@ export default async function AdminPage() {
       symbol: "◷",
       href: null,
     },
+    {
+      title: "Brand identity",
+      description: "Manage logos, colours and typography.",
+      symbol: "✦",
+      href: "/admin/brand",
+    },
   ];
 
   return (
