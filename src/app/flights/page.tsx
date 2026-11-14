@@ -1,43 +1,26 @@
 
 "use client";
 
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
-const flights = [
-  {
-    number: "SY 201",
-    aircraft: "Airbus A320neo",
-    departure: "08:30",
-    arrival: "09:40",
-    duration: "1h 10m",
-    price: 189,
-  },
-  {
-    number: "SY 215",
-    aircraft: "Boeing 737-800",
-    departure: "11:45",
-    arrival: "12:55",
-    duration: "1h 10m",
-    price: 219,
-  },
-  {
-    number: "SY 309",
-    aircraft: "Airbus A321neo",
-    departure: "16:20",
-    arrival: "17:30",
-    duration: "1h 10m",
-    price: 259,
-  },
-  {
-    number: "SY 401",
-    aircraft: "Airbus A320neo",
-    departure: "20:10",
-    arrival: "21:20",
-    duration: "1h 10m",
-    price: 199,
-  },
-];
+type Flight = {
+  id: string;
+  flight_number: string;
+  origin_code: string;
+  destination_code: string;
+  origin_name: string;
+  destination_name: string;
+  aircraft: string;
+  departure_time: string;
+  arrival_time: string;
+  duration: string;
+  base_fare: number;
+};
+
+function formatTime(value: string) {
+  return value.slice(0, 5);
+}
 
 function ResultsContent() {
   const params = useSearchParams();
@@ -50,50 +33,114 @@ function ResultsContent() {
   const passengers = params.get("passengers") || "1 Adult";
   const cabin = params.get("cabin") || "Economy";
 
+  const [flights, setFlights] = useState<Flight[]>([]);
   const [sort, setSort] = useState("recommended");
   const [selected, setSelected] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   const fromCode = from.match(/\((.*?)\)/)?.[1] || "KUL";
   const toCode = to.match(/\((.*?)\)/)?.[1] || "BKI";
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadFlights() {
+      setLoading(true);
+      setError("");
+
+      try {
+        const response = await fetch("/api/flights", {
+          cache: "no-store",
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data.error || "Could not load available flights."
+          );
+        }
+
+        if (!cancelled) {
+          setFlights(data.flights || []);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(
+            err instanceof Error
+              ? err.message
+              : "Something went wrong."
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadFlights();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const routeFlights = useMemo(() => {
+    return flights.filter(
+      (flight) =>
+        flight.origin_code.toUpperCase() === fromCode.toUpperCase() &&
+        flight.destination_code.toUpperCase() === toCode.toUpperCase()
+    );
+  }, [flights, fromCode, toCode]);
+
   const sortedFlights = useMemo(() => {
-    const list = [...flights];
+    const list = [...routeFlights];
 
     if (sort === "price") {
-      list.sort((a, b) => a.price - b.price);
+      list.sort(
+        (a, b) => Number(a.base_fare) - Number(b.base_fare)
+      );
     }
 
     if (sort === "departure") {
       list.sort((a, b) =>
-        a.departure.localeCompare(b.departure)
+        a.departure_time.localeCompare(b.departure_time)
       );
     }
 
     return list;
-  }, [sort]);
+  }, [routeFlights, sort]);
 
   const multiplier =
     cabin === "Business" ? 2.5 :
     cabin === "First Class" ? 4 : 1;
 
-  function chooseFlight(flight: typeof flights[number]) {
-  const params = new URLSearchParams({
-    from,
-    to,
-    depart,
-    return: returnDate,
-    trip,
-    passengers,
-    cabin,
-    flight: flight.number,
-    aircraft: flight.aircraft,
-    departure: flight.departure,
-    arrival: flight.arrival,
-    fare: String(Math.round(flight.price * multiplier)),
-  });
+  function chooseFlight(flight: Flight) {
+    setSelected(flight.flight_number);
 
-  window.location.href = `/booking?${params.toString()}`;
-}
+    const fare = Math.round(
+      Number(flight.base_fare) * multiplier
+    );
+
+    const bookingParams = new URLSearchParams({
+      from,
+      to,
+      depart,
+      return: returnDate,
+      trip,
+      passengers,
+      cabin,
+      flight: flight.flight_number,
+      aircraft: flight.aircraft,
+      departure: formatTime(flight.departure_time),
+      arrival: formatTime(flight.arrival_time),
+      fare: String(fare),
+    });
+
+    window.location.href = `/booking?${bookingParams.toString()}`;
+  }
 
   return (
     <main style={{ background: "#f8f6f1", minHeight: "100vh" }}>
@@ -110,31 +157,37 @@ function ResultsContent() {
         </nav>
       </header>
 
-      <section style={{
-        background: "#29251f",
-        color: "white",
-        padding: "55px 7%",
-      }}>
+      <section
+        style={{
+          background: "#29251f",
+          color: "white",
+          padding: "55px 7%",
+        }}
+      >
         <div className="eyebrow" style={{ color: "#d6ad70" }}>
           YOUR JOURNEY BEGINS
         </div>
 
-        <h1 style={{
-          fontFamily: "Georgia, serif",
-          fontSize: "clamp(32px, 5vw, 52px)",
-          fontWeight: 400,
-          margin: "15px 0",
-        }}>
+        <h1
+          style={{
+            fontFamily: "Georgia, serif",
+            fontSize: "clamp(32px, 5vw, 52px)",
+            fontWeight: 400,
+            margin: "15px 0",
+          }}
+        >
           Available flights
         </h1>
 
-        <div style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: "25px",
-          alignItems: "center",
-          marginTop: "25px",
-        }}>
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "25px",
+            alignItems: "center",
+            marginTop: "25px",
+          }}
+        >
           <div>
             <small>FROM</small>
             <h2>{fromCode}</h2>
@@ -167,29 +220,38 @@ function ResultsContent() {
         </p>
       </section>
 
-      <section style={{
-        maxWidth: "1100px",
-        margin: "auto",
-        padding: "40px 20px",
-      }}>
-        <div style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: "15px",
-          marginBottom: "25px",
-        }}>
+      <section
+        style={{
+          maxWidth: "1100px",
+          margin: "auto",
+          padding: "40px 20px",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: "15px",
+            marginBottom: "25px",
+          }}
+        >
           <div>
-            <h2 style={{
-              fontFamily: "Georgia, serif",
-              fontSize: "28px",
-              fontWeight: 400,
-            }}>
+            <h2
+              style={{
+                fontFamily: "Georgia, serif",
+                fontSize: "28px",
+                fontWeight: 400,
+              }}
+            >
               Select your flight
             </h2>
+
             <p style={{ color: "#777" }}>
-              {sortedFlights.length} sample flights available
+              {loading
+                ? "Checking available flights..."
+                : `${sortedFlights.length} flights available`}
             </p>
           </div>
 
@@ -207,143 +269,223 @@ function ResultsContent() {
           </label>
         </div>
 
-        {sortedFlights.map((flight) => {
-          const fare = Math.round(flight.price * multiplier);
-
-          return (
-            <article
-              key={flight.number}
-              style={{
-                background: "white",
-                border: selected === flight.number
-                  ? "2px solid #bd8b48"
-                  : "1px solid #e7e0d5",
-                borderRadius: "12px",
-                padding: "25px",
-                marginBottom: "16px",
-                boxShadow: "0 3px 15px #00000008",
-              }}
-            >
-              <div style={{
-                display: "flex",
-                justifyContent: "space-between",
-                flexWrap: "wrap",
-                gap: "15px",
-              }}>
-                <div>
-                  <strong>{flight.number}</strong>
-                  <p style={{ color: "#777", marginTop: "5px" }}>
-                    {flight.aircraft}
-                  </p>
-                </div>
-
-                <div style={{ textAlign: "right" }}>
-                  <small style={{ color: "#777" }}>
-                    FROM
-                  </small>
-                  <h2 style={{
-                    color: "#8a6535",
-                    fontSize: "27px",
-                  }}>
-                    RM {fare.toLocaleString("en-MY")}
-                  </h2>
-                  <small>per passenger · sample fare</small>
-                </div>
-              </div>
-
-              <div style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                gap: "15px",
-                flexWrap: "wrap",
-                margin: "25px 0",
-              }}>
-                <div>
-                  <h2 style={{ fontSize: "30px" }}>
-                    {flight.departure}
-                  </h2>
-                  <strong>{fromCode}</strong>
-                </div>
-
-                <div style={{
-                  flex: 1,
-                  textAlign: "center",
-                  color: "#888",
-                  minWidth: "100px",
-                }}>
-                  <small>{flight.duration}</small>
-                  <div style={{
-                    borderTop: "1px solid #c9bda9",
-                    margin: "8px 0",
-                  }} />
-                  <small>Non-stop</small>
-                </div>
-
-                <div style={{ textAlign: "right" }}>
-                  <h2 style={{ fontSize: "30px" }}>
-                    {flight.arrival}
-                  </h2>
-                  <strong>{toCode}</strong>
-                </div>
-              </div>
-
-              <div style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                flexWrap: "wrap",
-                gap: "12px",
-              }}>
-                <span style={{ color: "#777", fontSize: "13px" }}>
-                  {cabin} · {passengers}
-                </span>
-
-                <button
-                  onClick={() => chooseFlight(flight)}
-                  style={{
-                    background: selected === flight.number
-                      ? "#47724d"
-                      : "#9b713e",
-                    color: "white",
-                    border: "none",
-                    padding: "13px 25px",
-                    borderRadius: "5px",
-                    cursor: "pointer",
-                  }}
-                >
-                  {selected === flight.number
-                    ? "Selected ✓"
-                    : "Select flight"}
-                </button>
-              </div>
-            </article>
-          );
-        })}
-
-        {selected && (
-          <div style={{
-            background: "#eee8dc",
-            borderRadius: "10px",
-            padding: "20px",
-            marginTop: "25px",
-          }}>
-            <strong>{selected} selected</strong>
-            <p style={{ marginTop: "7px" }}>
-              Your flight selection is saved on this page.
-              The passenger and booking process will be added next.
-            </p>
+        {loading && (
+          <div
+            style={{
+              background: "white",
+              padding: "45px 20px",
+              borderRadius: "12px",
+              textAlign: "center",
+              color: "#777",
+            }}
+          >
+            Loading available flights...
           </div>
         )}
 
-        <p style={{
-          textAlign: "center",
-          color: "#888",
-          fontSize: "12px",
-          marginTop: "35px",
-        }}>
+        {!loading && error && (
+          <div
+            style={{
+              background: "#fff0ed",
+              border: "1px solid #e8c5bd",
+              padding: "25px",
+              borderRadius: "12px",
+              color: "#9b3c2e",
+            }}
+          >
+            <strong>Unable to load flights</strong>
+            <p style={{ marginTop: "8px" }}>{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              style={{
+                marginTop: "15px",
+                padding: "10px 18px",
+                background: "#9b713e",
+                color: "white",
+                border: "none",
+                borderRadius: "5px",
+                cursor: "pointer",
+              }}
+            >
+              Try again
+            </button>
+          </div>
+        )}
+
+        {!loading && !error && sortedFlights.length === 0 && (
+          <div
+            style={{
+              background: "white",
+              border: "1px solid #e7e0d5",
+              borderRadius: "12px",
+              padding: "45px 20px",
+              textAlign: "center",
+            }}
+          >
+            <h3
+              style={{
+                fontFamily: "Georgia, serif",
+                fontSize: "24px",
+                fontWeight: 400,
+              }}
+            >
+              No flights found
+            </h3>
+
+            <p style={{ color: "#777", marginTop: "10px" }}>
+              There are currently no active flights from {fromCode} to{" "}
+              {toCode}.
+            </p>
+
+            <a
+              href="/"
+              style={{
+                display: "inline-block",
+                marginTop: "20px",
+                color: "#98703e",
+                textDecoration: "underline",
+              }}
+            >
+              Search another route
+            </a>
+          </div>
+        )}
+
+        {!loading &&
+          !error &&
+          sortedFlights.map((flight) => {
+            const fare = Math.round(
+              Number(flight.base_fare) * multiplier
+            );
+
+            return (
+              <article
+                key={flight.id}
+                style={{
+                  background: "white",
+                  border:
+                    selected === flight.flight_number
+                      ? "2px solid #bd8b48"
+                      : "1px solid #e7e0d5",
+                  borderRadius: "12px",
+                  padding: "25px",
+                  marginBottom: "16px",
+                  boxShadow: "0 3px 15px #00000008",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    flexWrap: "wrap",
+                    gap: "15px",
+                  }}
+                >
+                  <div>
+                    <strong>{flight.flight_number}</strong>
+                    <p style={{ color: "#777", marginTop: "5px" }}>
+                      {flight.aircraft}
+                    </p>
+                  </div>
+
+                  <div style={{ textAlign: "right" }}>
+                    <small style={{ color: "#777" }}>FROM</small>
+                    <h2
+                      style={{
+                        color: "#8a6535",
+                        fontSize: "27px",
+                      }}
+                    >
+                      RM {fare.toLocaleString("en-MY")}
+                    </h2>
+                    <small>per passenger</small>
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: "15px",
+                    flexWrap: "wrap",
+                    margin: "25px 0",
+                  }}
+                >
+                  <div>
+                    <h2 style={{ fontSize: "30px" }}>
+                      {formatTime(flight.departure_time)}
+                    </h2>
+                    <strong>{flight.origin_code}</strong>
+                  </div>
+
+                  <div
+                    style={{
+                      flex: 1,
+                      textAlign: "center",
+                      color: "#888",
+                      minWidth: "100px",
+                    }}
+                  >
+                    <small>{flight.duration}</small>
+                    <div
+                      style={{
+                        borderTop: "1px solid #c9bda9",
+                        margin: "8px 0",
+                      }}
+                    />
+                    <small>Non-stop</small>
+                  </div>
+
+                  <div style={{ textAlign: "right" }}>
+                    <h2 style={{ fontSize: "30px" }}>
+                      {formatTime(flight.arrival_time)}
+                    </h2>
+                    <strong>{flight.destination_code}</strong>
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    flexWrap: "wrap",
+                    gap: "12px",
+                  }}
+                >
+                  <span style={{ color: "#777", fontSize: "13px" }}>
+                    {cabin} · {passengers}
+                  </span>
+
+                  <button
+                    onClick={() => chooseFlight(flight)}
+                    style={{
+                      background: "#9b713e",
+                      color: "white",
+                      border: "none",
+                      padding: "13px 25px",
+                      borderRadius: "5px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Select flight
+                  </button>
+                </div>
+              </article>
+            );
+          })}
+
+        <p
+          style={{
+            textAlign: "center",
+            color: "#888",
+            fontSize: "12px",
+            marginTop: "35px",
+          }}
+        >
           Seraya Airways is a fictional airline project.
-          All schedules and fares shown are illustrative.
+          All schedules and fares are illustrative.
         </p>
       </section>
 
@@ -363,7 +505,9 @@ function ResultsContent() {
 
 export default function FlightsPage() {
   return (
-    <Suspense fallback={<p style={{ padding: 30 }}>Loading flights...</p>}>
+    <Suspense
+      fallback={<p style={{ padding: 30 }}>Loading flights...</p>}
+    >
       <ResultsContent />
     </Suspense>
   );
