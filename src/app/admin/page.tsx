@@ -89,7 +89,7 @@ export default async function AdminPage() {
       title: "Media library",
       description: "Organise banners, destination photography and brand assets.",
       symbol: "▧",
-      href: null,
+      href: "/admin/media",
     },
     {
       title: "Activity logs",
