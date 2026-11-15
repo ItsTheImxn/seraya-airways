@@ -10,6 +10,8 @@
   --gold: #b28a45;
   --orange: #c66a3b;
   --cream: #f7f4ed;
+  --body-font: 'DM Sans', sans-serif;
+  --heading-font: 'Playfair Display', serif;
 }
 
 * {
@@ -24,7 +26,7 @@ body {
   margin: 0;
   color: var(--ink);
   background: var(--cream);
-  font-family: var(--body font);
+  font-family: var(--body-font);
 }
 
 a {
@@ -32,7 +34,9 @@ a {
   color: inherit;
 }
 
-button, input, select {
+button,
+input,
+select {
   font: inherit;
 }
 
@@ -46,6 +50,8 @@ header {
 }
 
 .brand {
+  display: inline-flex;
+  align-items: center;
   font-weight: 700;
   letter-spacing: 4px;
   font-size: 19px;
@@ -101,7 +107,7 @@ nav a:hover {
 }
 
 .hero h1 {
-  font-family: var(--heading font);
+  font-family: var(--heading-font);
   font-size: clamp(48px, 7vw, 78px);
   line-height: 1.05;
   font-weight: 500;
@@ -119,6 +125,8 @@ nav a:hover {
   color: #eee9df;
 }
 
+/* Booking panel */
+
 .booking {
   width: 86%;
   max-width: 1150px;
@@ -130,7 +138,7 @@ nav a:hover {
 }
 
 .booking h2 {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--heading-font);
   font-size: 27px;
   font-weight: 500;
   margin: 8px 0 25px;
@@ -155,10 +163,18 @@ nav a:hover {
   color: white;
 }
 
+/* Flight search fields */
+
 .flight-fields {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns:
+    minmax(0, 1.2fr)
+    minmax(0, 1.2fr)
+    auto
+    minmax(0, 1fr)
+    minmax(0, 1fr);
   gap: 12px;
+  align-items: stretch;
 }
 
 .field {
@@ -168,9 +184,10 @@ nav a:hover {
   flex-direction: column;
   gap: 10px;
   min-width: 0;
+  background: white;
 }
 
-.field span {
+.field > span {
   color: #938b7d;
   font-size: 9px;
   letter-spacing: 2px;
@@ -186,6 +203,118 @@ nav a:hover {
   width: 100%;
   min-width: 0;
 }
+
+/* Airport autocomplete */
+
+.airport-picker {
+  position: relative;
+  min-width: 0;
+}
+
+.airport-picker input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 13px;
+  letter-spacing: normal;
+}
+
+.airport-picker input::placeholder {
+  color: #aaa;
+  letter-spacing: normal;
+}
+
+.airport-results {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 100;
+  max-height: 280px;
+  overflow-y: auto;
+  background: white;
+  border: 1px solid #e5dfd4;
+  border-radius: 6px;
+  box-shadow: 0 12px 30px #00000018;
+}
+
+.airport-result {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 14px;
+  border: 0;
+  border-bottom: 1px solid #eee9e0;
+  background: white;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.airport-result:hover {
+  background: #f7f4ed;
+}
+
+.field .airport-result-code {
+  flex: 0 0 42px;
+  color: var(--gold);
+  font-family: var(--body-font);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.airport-result-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.airport-result-details strong {
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: normal;
+}
+
+.airport-result-details small {
+  color: #938b7d;
+  font-size: 10px;
+  letter-spacing: normal;
+}
+
+.airport-empty {
+  padding: 16px;
+  color: #888;
+  font-size: 12px;
+}
+
+.swap-airports {
+  align-self: center;
+  white-space: nowrap;
+  padding: 12px 14px;
+  border: 1px solid #e5dfd4;
+  background: white;
+  color: var(--ink);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.swap-airports:hover {
+  background: var(--cream);
+}
+
+.swap-airports:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Booking bottom */
 
 .booking-bottom {
   display: flex;
@@ -225,6 +354,11 @@ nav a:hover {
   background: #a9522c;
 }
 
+.search-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .notice {
   font-size: 11px;
   color: #a3482c;
@@ -236,6 +370,8 @@ nav a:hover {
   color: #999;
   margin-top: 18px;
 }
+
+/* Features */
 
 .features {
   display: grid;
@@ -256,12 +392,14 @@ nav a:hover {
   color: #888;
 }
 
+/* Destinations */
+
 .destinations {
   padding: 30px 8% 90px;
 }
 
 .destinations h2 {
-  font: 500 42px 'Playfair Display', serif;
+  font: 500 42px var(--heading-font);
 }
 
 .destinations h2 em {
@@ -302,9 +440,11 @@ nav a:hover {
 }
 
 .destination h3 {
-  font: 500 27px 'Playfair Display', serif;
+  font: 500 27px var(--heading-font);
   margin: 8px 0;
 }
+
+/* Membership */
 
 .membership {
   padding: 65px 10%;
@@ -313,7 +453,7 @@ nav a:hover {
 }
 
 .membership h2 {
-  font: 500 45px 'Playfair Display', serif;
+  font: 500 45px var(--heading-font);
 }
 
 .membership em {
@@ -324,6 +464,8 @@ nav a:hover {
   font-size: 12px;
   color: #ddd;
 }
+
+/* Footer */
 
 footer {
   padding: 40px 8% 20px;
@@ -345,6 +487,21 @@ footer {
   font-size: 10px;
 }
 
+.site-logo {
+  display: block;
+  width: auto;
+  max-width: 145px;
+  height: 34px;
+  object-fit: contain;
+}
+
+.footer-logo {
+  max-width: 190px;
+  height: 48px;
+}
+
+/* Other pages */
+
 .simple-page {
   max-width: 900px;
   margin: 70px auto;
@@ -353,7 +510,7 @@ footer {
 }
 
 .simple-page h1 {
-  font: 500 45px 'Playfair Display', serif;
+  font: 500 45px var(--heading-font);
 }
 
 .results-box {
@@ -368,6 +525,20 @@ footer {
   color: #777;
   line-height: 1.7;
 }
+
+/* Tablet */
+
+@media (max-width: 1050px) {
+  .flight-fields {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .swap-airports {
+    justify-self: start;
+  }
+}
+
+/* Mobile */
 
 @media (max-width: 750px) {
   header {
@@ -390,6 +561,12 @@ footer {
 
   .flight-fields {
     grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .swap-airports {
+    grid-column: span 2;
+    justify-self: stretch;
   }
 
   .booking-bottom {
@@ -418,26 +595,31 @@ footer {
   .destinations h2 {
     font-size: 34px;
   }
-  .site-logo {
-  display: block;
-  width: auto;
-  max-width: 145px;
-  height: 34px;
-  object-fit: contain;
+
+  .airport-results {
+    max-height: 220px;
   }
 
-.footer-logo {
-  max-width: 190px;
-  height: 48px;
+  header .site-logo {
+    max-width: 145px;
+    max-height: 34px;
+  }
+}
+
+@media (max-width: 420px) {
+  .flight-fields {
+    grid-template-columns: 1fr;
   }
 
-header .site-logo {
-  max-width: 145px;
-  max-height: 34px;
+  .swap-airports {
+    grid-column: auto;
   }
 
-.brand {
-  display: inline-flex;
-  align-items: center;
+  .booking-bottom {
+    grid-template-columns: 1fr;
+  }
+
+  .search-button {
+    grid-column: auto;
   }
 }
