@@ -1,12 +1,21 @@
 
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+
+type RobloxUser = {
+  id: string;
+  username: string;
+  displayName: string;
+};
 
 type SavedBooking = {
   pnr: string;
   passenger_name: string;
+  roblox_user_id: string;
+  roblox_username: string;
+  roblox_display_name: string;
   flight_number: string;
   origin: string;
   destination: string;
@@ -21,6 +30,8 @@ function PaymentContent() {
 
   const [method, setMethod] = useState("Card");
   const [booking, setBooking] = useState<SavedBooking | null>(null);
+  const [robloxUser, setRobloxUser] = useState<RobloxUser | null>(null);
+  const [checkingAuth, setCheckingAuth] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -28,13 +39,44 @@ function PaymentContent() {
   const to = params.get("to") || "BKI";
   const flight = params.get("flight") || "SY 201";
   const date = params.get("depart") || "";
-  const name = params.get("name") || "Passenger";
-  const email = params.get("email") || "";
   const seats = params.get("seats") || "";
   const total = Number(params.get("total") || 0);
 
+  useEffect(() => {
+    let active = true;
+
+    async function checkSession() {
+      try {
+        const response = await fetch("/api/auth/roblox/session", {
+          cache: "no-store",
+        });
+
+        if (!response.ok) {
+          if (active) setRobloxUser(null);
+          return;
+        }
+
+        const result = await response.json();
+
+        if (active && result.authenticated && result.user) {
+          setRobloxUser(result.user);
+        }
+      } catch {
+        if (active) setRobloxUser(null);
+      } finally {
+        if (active) setCheckingAuth(false);
+      }
+    }
+
+    checkSession();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
   async function confirmPayment() {
-    if (submitting || booking) return;
+    if (submitting || booking || !robloxUser) return;
 
     setSubmitting(true);
     setError("");
@@ -50,8 +92,6 @@ function PaymentContent() {
           to,
           flight,
           depart: date,
-          name,
-          email,
         }),
       });
 
@@ -68,7 +108,6 @@ function PaymentContent() {
         discord_linked: Boolean(result.booking.discord_linked),
         discord_notified: Boolean(result.booking.discord_notified),
       });
-
     } catch (err) {
       setError(
         err instanceof Error
@@ -88,6 +127,59 @@ function PaymentContent() {
     boxShadow: "0 3px 15px #00000008",
   };
 
+  if (checkingAuth) {
+    return (
+      <main style={{
+        minHeight: "100vh",
+        display: "grid",
+        placeItems: "center",
+        background: "#f8f6f1",
+      }}>
+        Checking Roblox account...
+      </main>
+    );
+  }
+
+  if (!robloxUser) {
+    return (
+      <main style={{
+        minHeight: "100vh",
+        display: "grid",
+        placeItems: "center",
+        background: "#f8f6f1",
+        padding: "25px",
+      }}>
+        <section style={{
+          maxWidth: "450px",
+          width: "100%",
+          background: "white",
+          padding: "35px",
+          borderRadius: "10px",
+          textAlign: "center",
+        }}>
+          <h1>Roblox login required</h1>
+          <p style={{ marginTop: "15px", color: "#777" }}>
+            Please connect your Roblox account before continuing.
+          </p>
+          <button
+            onClick={() => router.push("/account")}
+            style={{
+              padding: "15px",
+              marginTop: "20px",
+              background: "#98703e",
+              color: "white",
+              border: "none",
+              borderRadius: "5px",
+              cursor: "pointer",
+            }}
+          >
+            CONNECT ROBLOX
+          </button>
+        </section>
+      </main>
+    );
+  }
+
   if (booking) {
     return (
       <main style={{
@@ -105,7 +197,7 @@ function PaymentContent() {
             Booking confirmed!
           </h1>
 
-          <p>Your fictional Seraya Airways booking has been saved.</p>
+          <p>Your Seraya Airways booking has been saved.</p>
 
           <hr style={{ margin: "25px 0" }} />
 
@@ -123,16 +215,28 @@ function PaymentContent() {
             {booking.flight_number} · {booking.departure_date}
           </p>
 
-          <p>Passenger: {booking.passenger_name}</p>
-          <p>Seats: {seats || "Not selected"}</p>
+          <hr style={{ margin: "20px 0" }} />
+
+          <p style={{ color: "#98703e", fontWeight: "bold" }}>
+            ROBLOX PASSENGER
+          </p>
+
+          <p>{booking.roblox_display_name}</p>
+          <p>@{booking.roblox_username}</p>
+          <p style={{ fontSize: "12px", color: "#777" }}>
+            User ID: {booking.roblox_user_id}
+          </p>
+
+          <p style={{ marginTop: "15px" }}>
+            Seats: {seats || "Not selected"}
+          </p>
 
           <h2 style={{ color: "#98703e" }}>
             RM {total.toLocaleString("en-MY")}
           </h2>
 
           <p style={{ color: "#777", fontSize: "13px" }}>
-            This is a fictional booking for Roblox roleplay.
-            No real payment was made.
+            Fictional booking for Roblox roleplay. No real payment was made.
           </p>
 
           <p style={{ color: "#777", fontSize: "13px" }}>
@@ -213,8 +317,24 @@ function PaymentContent() {
           </h2>
 
           <p>{flight} · {date}</p>
-          <p>Passenger: {name}</p>
-          <p>Selected seats: {seats || "Not selected"}</p>
+
+          <hr style={{ margin: "20px 0" }} />
+
+          <p style={{ color: "#98703e", fontWeight: "bold" }}>
+            ROBLOX PASSENGER
+          </p>
+
+          <p style={{ marginTop: "10px" }}>
+            {robloxUser.displayName}
+          </p>
+          <p>@{robloxUser.username}</p>
+          <p style={{ fontSize: "12px", color: "#777" }}>
+            User ID: {robloxUser.id}
+          </p>
+
+          <p style={{ marginTop: "15px" }}>
+            Selected seats: {seats || "Not selected"}
+          </p>
 
           <hr style={{ margin: "20px 0" }} />
 
