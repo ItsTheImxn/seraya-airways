@@ -68,6 +68,12 @@ export default async function AdminPage() {
       href: "/admin/flights",
     },
     {
+      title: "Airport management",
+      description: "Add airports and manage the destinations available for flight searches.",
+      symbol: "⌖",
+      href: "/admin/airports",
+    },
+    {
       title: "Website designer",
       description: "Edit pages, layouts, colours, typography, navigation and content.",
       symbol: "◇",
