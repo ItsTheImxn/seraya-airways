@@ -5,8 +5,6 @@ import { useState, useEffect, type FormEvent } from "react";
 import { Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 
-const occupiedSeats = ["1B", "2C", "3D", "4A", "5B", "6C"];
-
 type RobloxUser = {
   id: string;
   username: string;
@@ -36,7 +34,6 @@ function BookingContent() {
 
   const [robloxUser, setRobloxUser] = useState<RobloxUser | null>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
-  const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
   const [baggage, setBaggage] = useState("20");
   const [meal, setMeal] = useState("Standard meal");
   const [error, setError] = useState("");
@@ -80,47 +77,19 @@ function BookingContent() {
 
   const mealPrice = meal === "Premium meal" ? 25 : 0;
 
-  const seatPrice = selectedSeats.filter(
-    seat => Number(seat[0]) <= 2
-  ).length * 45;
-
   const journeyMultiplier = trip === "Return" ? 2 : 1;
   const baseTotal = fare * passengerCount * journeyMultiplier;
 
   const extrasTotal =
-    (baggagePrice + mealPrice) * passengerCount + seatPrice;
+    (baggagePrice + mealPrice) * passengerCount;
 
   const total = baseTotal + extrasTotal;
-
-  function toggleSeat(seat: string) {
-    if (occupiedSeats.includes(seat)) return;
-
-    setError("");
-
-    setSelectedSeats(current => {
-      if (current.includes(seat)) {
-        return current.filter(item => item !== seat);
-      }
-
-      if (current.length >= passengerCount) {
-        setError(`You can only select ${passengerCount} seats.`);
-        return current;
-      }
-
-      return [...current, seat];
-    });
-  }
 
   function createBooking(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
     if (!robloxUser) {
       setError("Please connect your Roblox account before booking.");
-      return;
-    }
-
-    if (selectedSeats.length !== passengerCount) {
-      setError(`Please select ${passengerCount} seats.`);
       return;
     }
 
@@ -139,7 +108,6 @@ function BookingContent() {
       departure,
       arrival,
       fare: String(fare),
-      seats: selectedSeats.join(","),
       baggage,
       meal,
       total: String(total),
@@ -326,97 +294,7 @@ function BookingContent() {
         </section>
 
         <section style={cardStyle}>
-          <h2 style={headingStyle}>01 · Select your seats</h2>
-
-          <p style={{ color: "#777", margin: "10px 0 20px" }}>
-            Select {passengerCount} seat(s). Rows 1–2 have an
-            additional RM45 seat charge each.
-          </p>
-
-          <div style={{
-            maxWidth: "340px",
-            margin: "auto",
-            border: "1px solid #e5ded2",
-            borderRadius: "100px 100px 15px 15px",
-            padding: "25px 15px",
-          }}>
-            <p style={{
-              textAlign: "center",
-              color: "#98703e",
-              marginBottom: "25px",
-              letterSpacing: "2px",
-              fontSize: "12px",
-            }}>
-              FRONT OF AIRCRAFT
-            </p>
-
-            {Array.from({ length: 8 }, (_, index) => {
-              const row = index + 1;
-
-              return (
-                <div key={row} style={{
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  gap: "8px",
-                  marginBottom: "9px",
-                }}>
-                  {["A", "B", "C", "D"].map(letter => {
-                    const seat = `${row}${letter}`;
-                    const occupied = occupiedSeats.includes(seat);
-                    const selected = selectedSeats.includes(seat);
-
-                    return (
-                      <button
-                        key={seat}
-                        type="button"
-                        onClick={() => toggleSeat(seat)}
-                        disabled={occupied}
-                        style={{
-                          width: "47px",
-                          height: "40px",
-                          borderRadius: "7px",
-                          border: "1px solid #ddd",
-                          background: occupied
-                            ? "#d7d3cc"
-                            : selected
-                            ? "#98703e"
-                            : "white",
-                          color: selected ? "white" : "#333",
-                          cursor: occupied ? "not-allowed" : "pointer",
-                          fontWeight: "bold",
-                        }}
-                      >
-                        {seat}
-                      </button>
-                    );
-                  })}
-                </div>
-              );
-            })}
-          </div>
-
-          <div style={{
-            display: "flex",
-            justifyContent: "center",
-            gap: "15px",
-            flexWrap: "wrap",
-            marginTop: "20px",
-            fontSize: "12px",
-          }}>
-            <span>□ Available</span>
-            <span>■ Occupied</span>
-            <span style={{ color: "#98703e" }}>■ Selected</span>
-          </div>
-
-          <p style={{ marginTop: "18px" }}>
-            Selected: {selectedSeats.length}/{passengerCount}
-            {selectedSeats.length > 0 && ` · ${selectedSeats.join(", ")}`}
-          </p>
-        </section>
-
-        <section style={cardStyle}>
-          <h2 style={headingStyle}>02 · Baggage allowance</h2>
+          <h2 style={headingStyle}>01 · Baggage allowance</h2>
 
           <p style={{ color: "#777", margin: "10px 0 20px" }}>
             Choose a checked baggage package per passenger.
@@ -456,7 +334,7 @@ function BookingContent() {
         </section>
 
         <section style={cardStyle}>
-          <h2 style={headingStyle}>03 · In-flight dining</h2>
+          <h2 style={headingStyle}>02 · In-flight dining</h2>
 
           <p style={{ color: "#777", margin: "10px 0 20px" }}>
             Choose your preferred meal per passenger.
@@ -483,7 +361,7 @@ function BookingContent() {
 
         <form onSubmit={createBooking}>
           <section style={cardStyle}>
-            <h2 style={headingStyle}>04 · Passenger information</h2>
+            <h2 style={headingStyle}>03 · Passenger information</h2>
 
             <p style={{ color: "#777", marginTop: "10px" }}>
               Your passenger identity is retrieved directly from your
@@ -532,7 +410,7 @@ function BookingContent() {
           </section>
 
           <section style={cardStyle}>
-            <h2 style={headingStyle}>05 · Fare summary</h2>
+            <h2 style={headingStyle}>04 · Fare summary</h2>
 
             <div style={summaryRow}>
               <span>Flight fare × {passengerCount} × {journeyMultiplier}</span>
@@ -547,11 +425,6 @@ function BookingContent() {
             <div style={summaryRow}>
               <span>Meals</span>
               <strong>RM {(mealPrice * passengerCount).toLocaleString("en-MY")}</strong>
-            </div>
-
-            <div style={summaryRow}>
-              <span>Seat selection</span>
-              <strong>RM {seatPrice.toLocaleString("en-MY")}</strong>
             </div>
 
             <hr style={{ margin: "20px 0", borderColor: "#eee" }} />
