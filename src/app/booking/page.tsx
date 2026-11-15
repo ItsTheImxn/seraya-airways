@@ -1,11 +1,17 @@
 
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import { Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 
 const occupiedSeats = ["1B", "2C", "3D", "4A", "5B", "6C"];
+
+type RobloxUser = {
+  id: string;
+  username: string;
+  displayName: string;
+};
 
 function BookingContent() {
   const params = useSearchParams();
@@ -28,13 +34,45 @@ function BookingContent() {
     ? 3
     : Number(passengers.match(/\d+/)?.[0] || 1);
 
+  const [robloxUser, setRobloxUser] = useState<RobloxUser | null>(null);
+  const [checkingAuth, setCheckingAuth] = useState(true);
   const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
   const [baggage, setBaggage] = useState("20");
   const [meal, setMeal] = useState("Standard meal");
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+
+    async function checkRobloxSession() {
+      try {
+        const response = await fetch("/api/auth/roblox/session", {
+          cache: "no-store",
+        });
+
+        if (!response.ok) {
+          if (active) setRobloxUser(null);
+          return;
+        }
+
+        const result = await response.json();
+
+        if (active && result.authenticated && result.user) {
+          setRobloxUser(result.user);
+        }
+      } catch {
+        if (active) setRobloxUser(null);
+      } finally {
+        if (active) setCheckingAuth(false);
+      }
+    }
+
+    checkRobloxSession();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const baggagePrice =
     baggage === "20" ? 55 :
@@ -47,7 +85,6 @@ function BookingContent() {
   ).length * 45;
 
   const journeyMultiplier = trip === "Return" ? 2 : 1;
-
   const baseTotal = fare * passengerCount * journeyMultiplier;
 
   const extrasTotal =
@@ -77,6 +114,11 @@ function BookingContent() {
   function createBooking(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
+    if (!robloxUser) {
+      setError("Please connect your Roblox account before booking.");
+      return;
+    }
+
     if (selectedSeats.length !== passengerCount) {
       setError(`Please select ${passengerCount} seats.`);
       return;
@@ -97,9 +139,6 @@ function BookingContent() {
       departure,
       arrival,
       fare: String(fare),
-      name,
-      email,
-      phone,
       seats: selectedSeats.join(","),
       baggage,
       meal,
@@ -127,6 +166,88 @@ function BookingContent() {
     background: "white",
     fontSize: "15px",
   };
+
+  if (checkingAuth) {
+    return (
+      <main style={{
+        minHeight: "100vh",
+        display: "grid",
+        placeItems: "center",
+        background: "#f8f6f1",
+        color: "#29251f",
+      }}>
+        Checking your Roblox account...
+      </main>
+    );
+  }
+
+  if (!robloxUser) {
+    return (
+      <main style={{
+        minHeight: "100vh",
+        display: "grid",
+        placeItems: "center",
+        background: "#f8f6f1",
+        padding: "25px",
+      }}>
+        <section style={{
+          maxWidth: "480px",
+          width: "100%",
+          background: "white",
+          padding: "35px",
+          borderRadius: "10px",
+          textAlign: "center",
+        }}>
+          <h1 style={{
+            fontFamily: "Georgia, serif",
+            fontSize: "30px",
+            fontWeight: 400,
+          }}>
+            Roblox login required
+          </h1>
+
+          <p style={{
+            color: "#777",
+            marginTop: "15px",
+            lineHeight: 1.7,
+          }}>
+            Connect your Roblox account before continuing with
+            your Seraya Airways booking.
+          </p>
+
+          <button
+            onClick={() => router.push("/account")}
+            style={{
+              width: "100%",
+              padding: "15px",
+              marginTop: "25px",
+              background: "#98703e",
+              color: "white",
+              border: "none",
+              borderRadius: "5px",
+              cursor: "pointer",
+              fontWeight: "bold",
+            }}
+          >
+            CONNECT ROBLOX ACCOUNT
+          </button>
+
+          <button
+            onClick={() => router.push("/")}
+            style={{
+              marginTop: "18px",
+              background: "transparent",
+              border: "none",
+              color: "#777",
+              cursor: "pointer",
+            }}
+          >
+            Return home
+          </button>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main style={{
@@ -365,43 +486,49 @@ function BookingContent() {
             <h2 style={headingStyle}>04 · Passenger information</h2>
 
             <p style={{ color: "#777", marginTop: "10px" }}>
-              Use fictional details for this Roblox roleplay demonstration.
+              Your passenger identity is retrieved directly from your
+              authenticated Roblox account.
             </p>
 
-            <label style={labelStyle}>
-              PASSENGER NAME
-              <input
-                required
-                value={name}
-                onChange={e => setName(e.target.value)}
-                placeholder="Example Passenger"
-                style={inputStyle}
-              />
-            </label>
+            <div style={{
+              marginTop: "20px",
+              padding: "20px",
+              background: "#f8f6f1",
+              borderRadius: "8px",
+            }}>
+              <p style={{ fontSize: "12px", color: "#98703e", fontWeight: "bold" }}>
+                ROBLOX VERIFIED PROFILE
+              </p>
 
-            <label style={labelStyle}>
-              EMAIL ADDRESS
-              <input
-                required
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="passenger@example.com"
-                style={inputStyle}
-              />
-            </label>
+              <p style={{ marginTop: "15px", fontSize: "12px", color: "#777" }}>
+                DISPLAY NAME
+              </p>
+              <p style={{ fontWeight: "600" }}>
+                {robloxUser.displayName}
+              </p>
 
-            <label style={labelStyle}>
-              PHONE NUMBER
-              <input
-                required
-                type="tel"
-                value={phone}
-                onChange={e => setPhone(e.target.value)}
-                placeholder="+60 12 345 6789"
-                style={inputStyle}
-              />
-            </label>
+              <p style={{ marginTop: "12px", fontSize: "12px", color: "#777" }}>
+                ROBLOX USERNAME
+              </p>
+              <p style={{ fontWeight: "600" }}>
+                @{robloxUser.username}
+              </p>
+
+              <p style={{ marginTop: "12px", fontSize: "12px", color: "#777" }}>
+                ROBLOX USER ID
+              </p>
+              <p style={{ fontWeight: "600", wordBreak: "break-all" }}>
+                {robloxUser.id}
+              </p>
+
+              <p style={{
+                marginTop: "15px",
+                fontSize: "12px",
+                color: "#287447",
+              }}>
+                ✓ Roblox account authenticated
+              </p>
+            </div>
           </section>
 
           <section style={cardStyle}>
