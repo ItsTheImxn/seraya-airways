@@ -1,5 +1,9 @@
 
-import { randomInt, createHmac, timingSafeEqual } from "crypto";
+import {
+  randomInt,
+  createHmac,
+  timingSafeEqual,
+} from "crypto";
 import { cookies } from "next/headers";
 
 export const runtime = "nodejs";
@@ -13,6 +17,56 @@ function makePnr() {
   }
 
   return value;
+}
+
+function getRobloxSession(
+  cookieValue: string | undefined,
+  secret: string | undefined
+) {
+  if (!cookieValue || !secret) return null;
+
+  try {
+    const separator = cookieValue.lastIndexOf(".");
+    if (separator === -1) return null;
+
+    const payload = cookieValue.slice(0, separator);
+    const signature = cookieValue.slice(separator + 1);
+
+    const expected = createHmac("sha256", secret)
+      .update(payload)
+      .digest("hex");
+
+    const actualBuffer = Buffer.from(signature, "hex");
+    const expectedBuffer = Buffer.from(expected, "hex");
+
+    if (
+      actualBuffer.length !== expectedBuffer.length ||
+      !timingSafeEqual(actualBuffer, expectedBuffer)
+    ) {
+      return null;
+    }
+
+    const session = JSON.parse(
+      Buffer.from(payload, "base64url").toString("utf8")
+    );
+
+    if (
+      typeof session.id !== "string" ||
+      !/^\d+$/.test(session.id) ||
+      typeof session.username !== "string" ||
+      typeof session.displayName !== "string"
+    ) {
+      return null;
+    }
+
+    return {
+      id: session.id,
+      username: session.username,
+      displayName: session.displayName,
+    };
+  } catch {
+    return null;
+  }
 }
 
 function getLinkedDiscordId(
@@ -51,10 +105,11 @@ export async function POST(request: Request) {
     const supabaseUrl = process.env.SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     const discordSecret = process.env.DISCORD_CLIENT_SECRET;
+    const robloxSecret = process.env.ROBLOX_CLIENT_SECRET;
     const seriWebhookUrl = process.env.SERI_WEBHOOK_URL;
     const bookingApiSecret = process.env.BOOKING_API_SECRET;
 
-    if (!supabaseUrl || !supabaseKey) {
+    if (!supabaseUrl || !supabaseKey || !robloxSecret) {
       return Response.json(
         { error: "Booking service is not configured." },
         { status: 500 }
@@ -63,6 +118,18 @@ export async function POST(request: Request) {
 
     const cookieStore = await cookies();
 
+    const roblox = getRobloxSession(
+      cookieStore.get("seraya_roblox")?.value,
+      robloxSecret
+    );
+
+    if (!roblox) {
+      return Response.json(
+        { error: "Please connect your Roblox account before booking." },
+        { status: 401 }
+      );
+    }
+
     const discordUserId = getLinkedDiscordId(
       cookieStore.get("seraya_discord")?.value,
       discordSecret
@@ -70,20 +137,16 @@ export async function POST(request: Request) {
 
     const body = await request.json();
 
-    const name = String(body.name || "").trim();
-    const email = String(body.email || "").trim().toLowerCase();
     const flight = String(body.flight || "").trim();
     const from = String(body.from || "").trim().toUpperCase();
     const to = String(body.to || "").trim().toUpperCase();
     const depart = String(body.depart || "").trim();
 
     if (
-      !name ||
-      !email ||
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ||
       !flight ||
       !from ||
       !to ||
+      from === to ||
       !/^\d{4}-\d{2}-\d{2}$/.test(depart)
     ) {
       return Response.json(
@@ -109,8 +172,11 @@ export async function POST(request: Request) {
           },
           body: JSON.stringify({
             pnr,
-            passenger_name: name,
-            passenger_email: email,
+            passenger_name: roblox.displayName,
+            passenger_email: null,
+            roblox_user_id: roblox.id,
+            roblox_username: roblox.username,
+            roblox_display_name: roblox.displayName,
             discord_user_id: discordUserId,
             flight_number: flight,
             origin: from,
@@ -199,6 +265,9 @@ export async function POST(request: Request) {
           booking: {
             pnr: booking.pnr,
             passenger_name: booking.passenger_name,
+            roblox_user_id: booking.roblox_user_id,
+            roblox_username: booking.roblox_username,
+            roblox_display_name: booking.roblox_display_name,
             flight_number: booking.flight_number,
             origin: booking.origin,
             destination: booking.destination,
