@@ -176,17 +176,6 @@ export default function AdminFlightsPage() {
       return;
     }
 
-      async function toggleFlight(flight: Flight) {
-    const action = flight.is_active ? "deactivate" : "reactivate";
-
-    if (
-      !window.confirm(
-        `Are you sure you want to ${action} ${flight.flight_number}?`
-      )
-    ) {
-      return;
-    }
-
     setError("");
     setSuccess("");
 
@@ -258,6 +247,7 @@ export default function AdminFlightsPage() {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     }
   }
+
   const activeCount = flights.filter((flight) => flight.is_active).length;
 
   const inputClass =
@@ -393,7 +383,9 @@ export default function AdminFlightsPage() {
                   placeholder="KUL"
                   maxLength={3}
                   value={form.origin_code}
-                  onChange={(e) => updateField("origin_code", e.target.value.toUpperCase())}
+                  onChange={(e) =>
+                    updateField("origin_code", e.target.value.toUpperCase())
+                  }
                   required
                 />
               </div>
@@ -416,7 +408,9 @@ export default function AdminFlightsPage() {
                   placeholder="PEN"
                   maxLength={3}
                   value={form.destination_code}
-                  onChange={(e) => updateField("destination_code", e.target.value.toUpperCase())}
+                  onChange={(e) =>
+                    updateField("destination_code", e.target.value.toUpperCase())
+                  }
                   required
                 />
               </div>
@@ -427,7 +421,9 @@ export default function AdminFlightsPage() {
                   className={inputClass}
                   placeholder="Penang"
                   value={form.destination_name}
-                  onChange={(e) => updateField("destination_name", e.target.value)}
+                  onChange={(e) =>
+                    updateField("destination_name", e.target.value)
+                  }
                   required
                 />
               </div>
@@ -473,7 +469,10 @@ export default function AdminFlightsPage() {
                   onChange={(e) => updateField("is_active", e.target.checked)}
                   className="h-4 w-4 accent-[#8b7555]"
                 />
-                <label htmlFor="flight-active" className="text-sm font-medium text-[#514538]">
+                <label
+                  htmlFor="flight-active"
+                  className="text-sm font-medium text-[#514538]"
+                >
                   Flight is active
                 </label>
               </div>
@@ -485,7 +484,11 @@ export default function AdminFlightsPage() {
                 disabled={saving}
                 className="rounded-xl bg-[#493a2b] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#65513b] disabled:opacity-50"
               >
-                {saving ? "Saving..." : editingId ? "Save changes" : "Add flight"}
+                {saving
+                  ? "Saving..."
+                  : editingId
+                    ? "Save changes"
+                    : "Add flight"}
               </button>
 
               <button
@@ -505,7 +508,9 @@ export default function AdminFlightsPage() {
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#a98752]">
                 Operations
               </p>
-              <h2 className="mt-1 text-xl font-semibold">All scheduled flights</h2>
+              <h2 className="mt-1 text-xl font-semibold">
+                All scheduled flights
+              </h2>
             </div>
 
             <button
@@ -538,7 +543,9 @@ export default function AdminFlightsPage() {
                   <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-center">
                     <div className="min-w-0 flex-1">
                       <div className="mb-3 flex flex-wrap items-center gap-3">
-                        <span className="text-lg font-semibold">{flight.flight_number}</span>
+                        <span className="text-lg font-semibold">
+                          {flight.flight_number}
+                        </span>
                         <span className="rounded-full bg-[#f5f0e7] px-3 py-1 text-xs font-semibold text-[#8b7555]">
                           {flight.departure_date || "Date not assigned"}
                         </span>
@@ -551,23 +558,43 @@ export default function AdminFlightsPage() {
                         >
                           {flight.is_active ? "Active" : "Inactive"}
                         </span>
+                        <span
+                          className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                            flight.check_in_open
+                              ? "bg-[#edf2e8] text-[#60734e]"
+                              : "bg-[#f0ece7] text-[#897c6d]"
+                          }`}
+                        >
+                          {flight.check_in_open
+                            ? "Check-in open"
+                            : "Check-in closed"}
+                        </span>
                       </div>
 
                       <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
                         <div>
-                          <p className="text-xl font-semibold">{flight.origin_code}</p>
-                          <p className="text-xs text-[#83786b]">{flight.origin_name}</p>
+                          <p className="text-xl font-semibold">
+                            {flight.origin_code}
+                          </p>
+                          <p className="text-xs text-[#83786b]">
+                            {flight.origin_name}
+                          </p>
                         </div>
                         <div className="text-sm text-[#a98752]">→</div>
                         <div>
-                          <p className="text-xl font-semibold">{flight.destination_code}</p>
-                          <p className="text-xs text-[#83786b]">{flight.destination_name}</p>
+                          <p className="text-xl font-semibold">
+                            {flight.destination_code}
+                          </p>
+                          <p className="text-xs text-[#83786b]">
+                            {flight.destination_name}
+                          </p>
                         </div>
                       </div>
 
                       <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs text-[#83786b]">
                         <span>
-                          {flight.departure_time.slice(0, 5)} – {flight.arrival_time.slice(0, 5)}
+                          {flight.departure_time.slice(0, 5)} –{" "}
+                          {flight.arrival_time.slice(0, 5)}
                         </span>
                         <span>{flight.duration}</span>
                         <span>{flight.aircraft}</span>
@@ -578,12 +605,14 @@ export default function AdminFlightsPage() {
                       <p className="text-lg font-semibold">
                         RM {Number(flight.base_fare).toFixed(2)}
                       </p>
+
                       <button
                         onClick={() => startEditing(flight)}
                         className="rounded-lg border border-[#e7dfd2] px-4 py-2 text-sm font-medium hover:bg-[#f7f5f0]"
                       >
                         Edit
                       </button>
+
                       <button
                         onClick={() => toggleFlight(flight)}
                         className={`rounded-lg px-4 py-2 text-sm font-medium ${
@@ -594,13 +623,14 @@ export default function AdminFlightsPage() {
                       >
                         {flight.is_active ? "Deactivate" : "Reactivate"}
                       </button>
+
                       <button
-                          onClick={() => toggleCheckIn(flight)}
-                          disabled={!flight.is_active}
-                          className={`rounded-lg px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-40 ${
-                            flight.check_in_open
-                              ? "border border-red-200 text-red-700 hover:bg-red-50"
-                              : "border border-[#cbd8bf] text-[#60734e] hover:bg-[#edf2e8]"
+                        onClick={() => toggleCheckIn(flight)}
+                        disabled={!flight.is_active}
+                        className={`rounded-lg px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-40 ${
+                          flight.check_in_open
+                            ? "border border-red-200 text-red-700 hover:bg-red-50"
+                            : "border border-[#cbd8bf] text-[#60734e] hover:bg-[#edf2e8]"
                         }`}
                       >
                         {flight.check_in_open
