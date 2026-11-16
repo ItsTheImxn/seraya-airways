@@ -141,6 +141,7 @@ export async function POST(request: Request) {
     const from = String(body.from || "").trim().toUpperCase();
     const to = String(body.to || "").trim().toUpperCase();
     const depart = String(body.depart || "").trim();
+    const flightId = String(body.flightId || "").trim();
 
     if (
       !flight ||
@@ -148,6 +149,7 @@ export async function POST(request: Request) {
       !to ||
       from === to ||
       !/^\d{4}-\d{2}-\d{2}$/.test(depart)
+      ! /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(flightId) ||
     ) {
       return Response.json(
         { error: "Some booking details are invalid." },
