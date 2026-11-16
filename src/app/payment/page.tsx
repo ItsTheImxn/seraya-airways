@@ -39,7 +39,6 @@ function PaymentContent() {
   const to = params.get("to") || "BKI";
   const flight = params.get("flight") || "SY 201";
   const date = params.get("depart") || "";
-  const seats = params.get("seats") || "";
   const total = Number(params.get("total") || 0);
 
   useEffect(() => {
@@ -98,9 +97,7 @@ function PaymentContent() {
       const result = await response.json();
 
       if (!response.ok || !result.success) {
-        throw new Error(
-          result.error || "Booking could not be saved."
-        );
+        throw new Error(result.error || "Booking could not be saved.");
       }
 
       setBooking({
@@ -227,10 +224,6 @@ function PaymentContent() {
             User ID: {booking.roblox_user_id}
           </p>
 
-          <p style={{ marginTop: "15px" }}>
-            Seats: {seats || "Not selected"}
-          </p>
-
           <h2 style={{ color: "#98703e" }}>
             RM {total.toLocaleString("en-MY")}
           </h2>
@@ -330,10 +323,6 @@ function PaymentContent() {
           <p>@{robloxUser.username}</p>
           <p style={{ fontSize: "12px", color: "#777" }}>
             User ID: {robloxUser.id}
-          </p>
-
-          <p style={{ marginTop: "15px" }}>
-            Selected seats: {seats || "Not selected"}
           </p>
 
           <hr style={{ margin: "20px 0" }} />
