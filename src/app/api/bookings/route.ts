@@ -158,6 +158,41 @@ export async function POST(request: Request) {
     }
 
     const baseUrl = supabaseUrl.replace(/\/$/, "");
+    const flightResponse = await fetch(
+  `${baseUrl}/rest/v1/flights?id=eq.${encodeURIComponent(flightId)}&select=id,flight_number,origin_code,destination_code,departure_date,is_active`,
+  {
+    headers: {
+      apikey: supabaseKey,
+      Authorization: `Bearer ${supabaseKey}`,
+    },
+    cache: "no-store",
+  }
+);
+
+if (!flightResponse.ok) {
+  console.error("Flight lookup failed:", await flightResponse.text());
+  return Response.json(
+    { error: "We couldn't verify this flight. Please try again." },
+    { status: 502 }
+  );
+}
+
+const flightRows = await flightResponse.json();
+const scheduledFlight = flightRows[0];
+
+if (
+  !scheduledFlight ||
+  !scheduledFlight.is_active ||
+  scheduledFlight.flight_number !== flight ||
+  scheduledFlight.origin_code !== from ||
+  scheduledFlight.destination_code !== to ||
+  scheduledFlight.departure_date !== depart
+) {
+  return Response.json(
+    { error: "This scheduled flight is no longer available. Please search again." },
+    { status: 400 }
+  );
+}
 
     for (let attempt = 0; attempt < 3; attempt++) {
       const pnr = makePnr();
@@ -180,6 +215,7 @@ export async function POST(request: Request) {
             roblox_username: roblox.username,
             roblox_display_name: roblox.displayName,
             discord_user_id: discordUserId,
+            flight_id: scheduledFlight.id,
             flight_number: flight,
             origin: from,
             destination: to,
