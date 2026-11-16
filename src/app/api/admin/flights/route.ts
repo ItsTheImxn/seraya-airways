@@ -176,8 +176,51 @@ export async function PATCH(request: Request) {
     return Response.json({ error: "Unauthorized." }, { status: 401 });
   }
 
-  try {
+    try {
     const body = await request.json();
+
+    // Staff check-in control
+    if (body.action === "check_in") {
+      const id = clean(body.id);
+
+      if (!id || typeof body.check_in_open !== "boolean") {
+        return Response.json(
+          { error: "Invalid check-in update." },
+          { status: 400 }
+        );
+      }
+
+      const checkInResponse = await supabaseRequest(
+        `flights?id=eq.${encodeURIComponent(id)}`,
+        {
+          method: "PATCH",
+          headers: { Prefer: "return=representation" },
+          body: JSON.stringify({
+            check_in_open: body.check_in_open,
+            updated_at: new Date().toISOString(),
+          }),
+        }
+      );
+
+      const checkInData = await checkInResponse.json();
+
+      if (!checkInResponse.ok) {
+        return Response.json(
+          { error: "Could not update check-in status." },
+          { status: 502 }
+        );
+      }
+
+      if (!checkInData.length) {
+        return Response.json(
+          { error: "Flight not found." },
+          { status: 404 }
+        );
+      }
+
+      return Response.json({ flight: checkInData[0] });
+    }
+
     const id = clean(body.id);
     const flight = validate(body);
 
