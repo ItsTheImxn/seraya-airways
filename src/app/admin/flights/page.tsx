@@ -176,7 +176,49 @@ export default function AdminFlightsPage() {
       return;
     }
 
-    async function toggleCheckIn(flight: Flight) {
+      async function toggleFlight(flight: Flight) {
+    const action = flight.is_active ? "deactivate" : "reactivate";
+
+    if (
+      !window.confirm(
+        `Are you sure you want to ${action} ${flight.flight_number}?`
+      )
+    ) {
+      return;
+    }
+
+    setError("");
+    setSuccess("");
+
+    try {
+      const response = await fetch("/api/admin/flights", {
+        method: flight.is_active ? "DELETE" : "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          flight.is_active
+            ? { id: flight.id }
+            : {
+                ...flight,
+                id: flight.id,
+                is_active: true,
+              }
+        ),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Could not update flight status.");
+      }
+
+      setSuccess(`${flight.flight_number} has been ${action}d successfully.`);
+      await loadFlights();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong.");
+    }
+  }
+
+  async function toggleCheckIn(flight: Flight) {
     const nextStatus = !flight.check_in_open;
 
     if (
@@ -216,38 +258,6 @@ export default function AdminFlightsPage() {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     }
   }
-
-    setError("");
-    setSuccess("");
-
-    try {
-      const response = await fetch("/api/admin/flights", {
-        method: flight.is_active ? "DELETE" : "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(
-          flight.is_active
-            ? { id: flight.id }
-            : {
-                ...flight,
-                id: flight.id,
-                is_active: true,
-              }
-        ),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Could not update flight status.");
-      }
-
-      setSuccess(`${flight.flight_number} has been ${action}d successfully.`);
-      await loadFlights();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong.");
-    }
-  }
-
   const activeCount = flights.filter((flight) => flight.is_active).length;
 
   const inputClass =
