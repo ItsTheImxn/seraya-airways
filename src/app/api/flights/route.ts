@@ -2,7 +2,7 @@
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: Request) {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -13,9 +13,26 @@ export async function GET() {
     );
   }
 
+  const { searchParams } = new URL(request.url);
+  const depart = searchParams.get("depart") || "";
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(depart)) {
+    return Response.json(
+      { error: "Please select a valid departure date." },
+      { status: 400 }
+    );
+  }
+
   try {
+    const query = new URLSearchParams({
+      select: "id,flight_number,departure_date,origin_code,destination_code,origin_name,destination_name,aircraft,departure_time,arrival_time,duration,base_fare",
+      is_active: "eq.true",
+      departure_date: `eq.${depart}`,
+      order: "departure_time.asc",
+    });
+
     const response = await fetch(
-      `${url.replace(/\/$/, "")}/rest/v1/flights?select=id,flight_number,origin_code,destination_code,origin_name,destination_name,aircraft,departure_time,arrival_time,duration,base_fare&is_active=eq.true&order=departure_time.asc`,
+      `${url.replace(/\/$/, "")}/rest/v1/flights?${query.toString()}`,
       {
         headers: {
           apikey: key,
