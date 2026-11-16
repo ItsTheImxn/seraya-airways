@@ -23,6 +23,7 @@ function BookingContent() {
   const passengers = params.get("passengers") || "1 Adult";
   const cabin = params.get("cabin") || "Economy";
   const flight = params.get("flight") || "SY 201";
+  const flightId = params.get("flightId") || "";
   const aircraft = params.get("aircraft") || "Airbus A320neo";
   const departure = params.get("departure") || "08:30";
   const arrival = params.get("arrival") || "09:40";
@@ -92,8 +93,14 @@ function BookingContent() {
       setError("Please connect your Roblox account before booking.");
       return;
     }
+    
+    if (!flightId) {
 
-    setError("");
+      setError("Flight information is missing. Please search for your flight again.");
+      return;
+    }
+
+setError("");
 
     const paymentDetails = new URLSearchParams({
       from,
@@ -104,6 +111,7 @@ function BookingContent() {
       passengers,
       cabin,
       flight,
+      flightId,
       aircraft,
       departure,
       arrival,
