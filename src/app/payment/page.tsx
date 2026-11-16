@@ -38,6 +38,7 @@ function PaymentContent() {
   const from = params.get("from") || "KUL";
   const to = params.get("to") || "BKI";
   const flight = params.get("flight") || "SY 201";
+  const flightId = params.get("flightId") || "";
   const date = params.get("depart") || "";
   const total = Number(params.get("total") || 0);
 
@@ -76,7 +77,10 @@ function PaymentContent() {
 
   async function confirmPayment() {
     if (submitting || booking || !robloxUser) return;
-
+    if (!flightId) {
+      setError("Flight information is missing. Please search for your flight again.");
+      return;
+      }
     setSubmitting(true);
     setError("");
 
@@ -90,6 +94,7 @@ function PaymentContent() {
           from,
           to,
           flight,
+          flightId,
           depart: date,
         }),
       });
@@ -406,7 +411,7 @@ function PaymentContent() {
           >
             {submitting
               ? "SAVING BOOKING..."
-              : "CONFIRM DEMO PAYMENT"}
+              : "CONFIRM PAYMENT"}
           </button>
         </section>
       </div>
