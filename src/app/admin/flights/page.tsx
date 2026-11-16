@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 type Flight = {
   id: string;
   flight_number: string;
+  departure_date: string | null;
   origin_code: string;
   destination_code: string;
   origin_name: string;
@@ -20,6 +21,7 @@ type Flight = {
 
 type FlightForm = {
   flight_number: string;
+  departure_date: string;
   origin_code: string;
   destination_code: string;
   origin_name: string;
@@ -34,6 +36,7 @@ type FlightForm = {
 
 const emptyForm: FlightForm = {
   flight_number: "",
+  departure_date: "",
   origin_code: "",
   destination_code: "",
   origin_name: "",
@@ -63,7 +66,6 @@ export default function AdminFlightsPage() {
       const response = await fetch("/api/admin/flights", {
         cache: "no-store",
       });
-
       const data = await response.json();
 
       if (!response.ok) {
@@ -72,9 +74,7 @@ export default function AdminFlightsPage() {
 
       setFlights(data.flights || []);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Something went wrong."
-      );
+      setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setLoading(false);
     }
@@ -88,10 +88,7 @@ export default function AdminFlightsPage() {
     field: K,
     value: FlightForm[K]
   ) {
-    setForm((current) => ({
-      ...current,
-      [field]: value,
-    }));
+    setForm((current) => ({ ...current, [field]: value }));
   }
 
   function startEditing(flight: Flight) {
@@ -99,6 +96,7 @@ export default function AdminFlightsPage() {
 
     setForm({
       flight_number: flight.flight_number,
+      departure_date: flight.departure_date || "",
       origin_code: flight.origin_code,
       destination_code: flight.destination_code,
       origin_name: flight.origin_name,
@@ -138,9 +136,7 @@ export default function AdminFlightsPage() {
 
       const response = await fetch("/api/admin/flights", {
         method: editingId ? "PATCH" : "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...payload,
           ...(editingId ? { id: editingId } : {}),
@@ -162,9 +158,7 @@ export default function AdminFlightsPage() {
       resetForm();
       await loadFlights();
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Something went wrong."
-      );
+      setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setSaving(false);
     }
@@ -187,9 +181,7 @@ export default function AdminFlightsPage() {
     try {
       const response = await fetch("/api/admin/flights", {
         method: flight.is_active ? "DELETE" : "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(
           flight.is_active
             ? { id: flight.id }
@@ -207,15 +199,10 @@ export default function AdminFlightsPage() {
         throw new Error(data.error || "Could not update flight status.");
       }
 
-      setSuccess(
-        `${flight.flight_number} has been ${action}d successfully.`
-      );
-
+      setSuccess(`${flight.flight_number} has been ${action}d successfully.`);
       await loadFlights();
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Something went wrong."
-      );
+      setError(err instanceof Error ? err.message : "Something went wrong.");
     }
   }
 
@@ -246,7 +233,7 @@ export default function AdminFlightsPage() {
               Flight management
             </h1>
             <p className="mt-2 text-sm text-[#83786b]">
-              Create, update and manage your airline&apos;s flights.
+              Create and manage individual scheduled departures.
             </p>
           </div>
 
@@ -280,10 +267,10 @@ export default function AdminFlightsPage() {
           <div className="mb-6 flex items-center justify-between gap-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#a98752]">
-                {editingId ? "Edit existing flight" : "Flight configuration"}
+                {editingId ? "Edit scheduled flight" : "Flight configuration"}
               </p>
               <h2 className="mt-1 text-xl font-semibold">
-                {editingId ? "Update flight" : "Add a new flight"}
+                {editingId ? "Update flight" : "Add a scheduled flight"}
               </h2>
             </div>
 
@@ -306,9 +293,18 @@ export default function AdminFlightsPage() {
                   className={inputClass}
                   placeholder="SY 201"
                   value={form.flight_number}
-                  onChange={(e) =>
-                    updateField("flight_number", e.target.value)
-                  }
+                  onChange={(e) => updateField("flight_number", e.target.value)}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className={labelClass}>Departure date</label>
+                <input
+                  className={inputClass}
+                  type="date"
+                  value={form.departure_date}
+                  onChange={(e) => updateField("departure_date", e.target.value)}
                   required
                 />
               </div>
@@ -345,9 +341,7 @@ export default function AdminFlightsPage() {
                   placeholder="KUL"
                   maxLength={3}
                   value={form.origin_code}
-                  onChange={(e) =>
-                    updateField("origin_code", e.target.value.toUpperCase())
-                  }
+                  onChange={(e) => updateField("origin_code", e.target.value.toUpperCase())}
                   required
                 />
               </div>
@@ -370,12 +364,7 @@ export default function AdminFlightsPage() {
                   placeholder="PEN"
                   maxLength={3}
                   value={form.destination_code}
-                  onChange={(e) =>
-                    updateField(
-                      "destination_code",
-                      e.target.value.toUpperCase()
-                    )
-                  }
+                  onChange={(e) => updateField("destination_code", e.target.value.toUpperCase())}
                   required
                 />
               </div>
@@ -386,9 +375,7 @@ export default function AdminFlightsPage() {
                   className={inputClass}
                   placeholder="Penang"
                   value={form.destination_name}
-                  onChange={(e) =>
-                    updateField("destination_name", e.target.value)
-                  }
+                  onChange={(e) => updateField("destination_name", e.target.value)}
                   required
                 />
               </div>
@@ -399,9 +386,7 @@ export default function AdminFlightsPage() {
                   className={inputClass}
                   type="time"
                   value={form.departure_time}
-                  onChange={(e) =>
-                    updateField("departure_time", e.target.value)
-                  }
+                  onChange={(e) => updateField("departure_time", e.target.value)}
                   required
                 />
               </div>
@@ -412,9 +397,7 @@ export default function AdminFlightsPage() {
                   className={inputClass}
                   type="time"
                   value={form.arrival_time}
-                  onChange={(e) =>
-                    updateField("arrival_time", e.target.value)
-                  }
+                  onChange={(e) => updateField("arrival_time", e.target.value)}
                   required
                 />
               </div>
@@ -435,15 +418,10 @@ export default function AdminFlightsPage() {
                   id="flight-active"
                   type="checkbox"
                   checked={form.is_active}
-                  onChange={(e) =>
-                    updateField("is_active", e.target.checked)
-                  }
+                  onChange={(e) => updateField("is_active", e.target.checked)}
                   className="h-4 w-4 accent-[#8b7555]"
                 />
-                <label
-                  htmlFor="flight-active"
-                  className="text-sm font-medium text-[#514538]"
-                >
+                <label htmlFor="flight-active" className="text-sm font-medium text-[#514538]">
                   Flight is active
                 </label>
               </div>
@@ -455,11 +433,7 @@ export default function AdminFlightsPage() {
                 disabled={saving}
                 className="rounded-xl bg-[#493a2b] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#65513b] disabled:opacity-50"
               >
-                {saving
-                  ? "Saving..."
-                  : editingId
-                    ? "Save changes"
-                    : "Add flight"}
+                {saving ? "Saving..." : editingId ? "Save changes" : "Add flight"}
               </button>
 
               <button
@@ -479,7 +453,7 @@ export default function AdminFlightsPage() {
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#a98752]">
                 Operations
               </p>
-              <h2 className="mt-1 text-xl font-semibold">All flights</h2>
+              <h2 className="mt-1 text-xl font-semibold">All scheduled flights</h2>
             </div>
 
             <button
@@ -499,7 +473,7 @@ export default function AdminFlightsPage() {
             <div className="rounded-xl bg-[#f8f6f1] px-5 py-12 text-center">
               <p className="font-medium">No flights have been added yet.</p>
               <p className="mt-2 text-sm text-[#83786b]">
-                Use the form above to create your first flight.
+                Use the form above to create your first scheduled flight.
               </p>
             </div>
           ) : (
@@ -512,10 +486,10 @@ export default function AdminFlightsPage() {
                   <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-center">
                     <div className="min-w-0 flex-1">
                       <div className="mb-3 flex flex-wrap items-center gap-3">
-                        <span className="text-lg font-semibold">
-                          {flight.flight_number}
+                        <span className="text-lg font-semibold">{flight.flight_number}</span>
+                        <span className="rounded-full bg-[#f5f0e7] px-3 py-1 text-xs font-semibold text-[#8b7555]">
+                          {flight.departure_date || "Date not assigned"}
                         </span>
-
                         <span
                           className={`rounded-full px-3 py-1 text-xs font-semibold ${
                             flight.is_active
@@ -529,30 +503,19 @@ export default function AdminFlightsPage() {
 
                       <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
                         <div>
-                          <p className="text-xl font-semibold">
-                            {flight.origin_code}
-                          </p>
-                          <p className="text-xs text-[#83786b]">
-                            {flight.origin_name}
-                          </p>
+                          <p className="text-xl font-semibold">{flight.origin_code}</p>
+                          <p className="text-xs text-[#83786b]">{flight.origin_name}</p>
                         </div>
-
                         <div className="text-sm text-[#a98752]">→</div>
-
                         <div>
-                          <p className="text-xl font-semibold">
-                            {flight.destination_code}
-                          </p>
-                          <p className="text-xs text-[#83786b]">
-                            {flight.destination_name}
-                          </p>
+                          <p className="text-xl font-semibold">{flight.destination_code}</p>
+                          <p className="text-xs text-[#83786b]">{flight.destination_name}</p>
                         </div>
                       </div>
 
                       <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs text-[#83786b]">
                         <span>
-                          {flight.departure_time.slice(0, 5)} –{" "}
-                          {flight.arrival_time.slice(0, 5)}
+                          {flight.departure_time.slice(0, 5)} – {flight.arrival_time.slice(0, 5)}
                         </span>
                         <span>{flight.duration}</span>
                         <span>{flight.aircraft}</span>
@@ -563,14 +526,12 @@ export default function AdminFlightsPage() {
                       <p className="text-lg font-semibold">
                         RM {Number(flight.base_fare).toFixed(2)}
                       </p>
-
                       <button
                         onClick={() => startEditing(flight)}
                         className="rounded-lg border border-[#e7dfd2] px-4 py-2 text-sm font-medium hover:bg-[#f7f5f0]"
                       >
                         Edit
                       </button>
-
                       <button
                         onClick={() => toggleFlight(flight)}
                         className={`rounded-lg px-4 py-2 text-sm font-medium ${
