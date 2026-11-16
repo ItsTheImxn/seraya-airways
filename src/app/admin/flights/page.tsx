@@ -17,6 +17,7 @@ type Flight = {
   duration: string;
   base_fare: number;
   is_active: boolean;
+  check_in_open: boolean;
 };
 
 type FlightForm = {
@@ -174,6 +175,47 @@ export default function AdminFlightsPage() {
     ) {
       return;
     }
+
+    async function toggleCheckIn(flight: Flight) {
+    const nextStatus = !flight.check_in_open;
+
+    if (
+      !window.confirm(
+        `${nextStatus ? "Open" : "Close"} check-in for ${flight.flight_number} on ${flight.departure_date}?`
+      )
+    ) {
+      return;
+    }
+
+    setError("");
+    setSuccess("");
+
+    try {
+      const response = await fetch("/api/admin/flights", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "check_in",
+          id: flight.id,
+          check_in_open: nextStatus,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Could not update check-in.");
+      }
+
+      setSuccess(
+        `Check-in has been ${nextStatus ? "opened" : "closed"} for ${flight.flight_number}.`
+      );
+
+      await loadFlights();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong.");
+    }
+  }
 
     setError("");
     setSuccess("");
@@ -541,6 +583,19 @@ export default function AdminFlightsPage() {
                         }`}
                       >
                         {flight.is_active ? "Deactivate" : "Reactivate"}
+                      </button>
+                      <button
+                          onClick={() => toggleCheckIn(flight)}
+                          disabled={!flight.is_active}
+                          className={`rounded-lg px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-40 ${
+                            flight.check_in_open
+                              ? "border border-red-200 text-red-700 hover:bg-red-50"
+                              : "border border-[#cbd8bf] text-[#60734e] hover:bg-[#edf2e8]"
+                        }`}
+                      >
+                        {flight.check_in_open
+                          ? "Close check-in"
+                          : "Open check-in"}
                       </button>
                     </div>
                   </div>
