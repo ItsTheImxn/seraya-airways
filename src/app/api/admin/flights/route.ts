@@ -6,6 +6,7 @@ export const dynamic = "force-dynamic";
 
 type FlightInput = {
   flight_number?: unknown;
+  departure_date?: unknown;
   origin_code?: unknown;
   destination_code?: unknown;
   origin_name?: unknown;
@@ -22,9 +23,19 @@ function clean(value: unknown) {
   return String(value ?? "").trim();
 }
 
+function validDate(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+
+  const date = new Date(`${value}T00:00:00.000Z`);
+
+  return !Number.isNaN(date.getTime()) &&
+    date.toISOString().slice(0, 10) === value;
+}
+
 function validate(body: FlightInput) {
   const flight = {
     flight_number: clean(body.flight_number).toUpperCase(),
+    departure_date: clean(body.departure_date),
     origin_code: clean(body.origin_code).toUpperCase(),
     destination_code: clean(body.destination_code).toUpperCase(),
     origin_name: clean(body.origin_name),
@@ -40,6 +51,7 @@ function validate(body: FlightInput) {
   if (
     !flight.flight_number ||
     !/^[A-Z0-9 -]{2,12}$/.test(flight.flight_number) ||
+    !validDate(flight.departure_date) ||
     !/^[A-Z]{3}$/.test(flight.origin_code) ||
     !/^[A-Z]{3}$/.test(flight.destination_code) ||
     flight.origin_code === flight.destination_code ||
@@ -89,8 +101,9 @@ export async function GET() {
 
   try {
     const response = await supabaseRequest(
-      "flights?select=*&order=created_at.desc"
+      "flights?select=*&order=departure_date.asc,departure_time.asc"
     );
+
     const data = await response.json();
 
     if (!response.ok) {
@@ -122,7 +135,7 @@ export async function POST(request: Request) {
 
     if (!flight) {
       return Response.json(
-        { error: "Please check all flight details." },
+        { error: "Please check all flight details, including the departure date." },
         { status: 400 }
       );
     }
@@ -136,15 +149,15 @@ export async function POST(request: Request) {
     const data = await response.json();
 
     if (!response.ok) {
-      const duplicate = response.status === 409;
+      console.error("Flight creation error:", data);
 
       return Response.json(
         {
-          error: duplicate
-            ? "That flight number already exists."
+          error: response.status === 409
+            ? "A conflicting flight record already exists."
             : "Could not create the flight.",
         },
-        { status: duplicate ? 409 : 502 }
+        { status: response.status === 409 ? 409 : 502 }
       );
     }
 
@@ -170,7 +183,7 @@ export async function PATCH(request: Request) {
 
     if (!id || !flight) {
       return Response.json(
-        { error: "Please check the flight details." },
+        { error: "Please check all flight details, including the departure date." },
         { status: 400 }
       );
     }
@@ -190,6 +203,7 @@ export async function PATCH(request: Request) {
     const data = await response.json();
 
     if (!response.ok) {
+      console.error("Flight update error:", data);
       return Response.json(
         { error: "Could not update the flight." },
         { status: 502 }
