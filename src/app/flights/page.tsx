@@ -16,6 +16,7 @@ type Flight = {
   arrival_time: string;
   duration: string;
   base_fare: number;
+  departure_date: string;
 };
 
 function formatTime(value: string) {
@@ -48,18 +49,24 @@ function ResultsContent() {
     async function loadFlights() {
       setLoading(true);
       setError("");
+      setFlights([]);
+
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(depart)) {
+        setError("Please select a valid departure date before searching.");
+        setLoading(false);
+        return;
+      }
 
       try {
-        const response = await fetch("/api/flights", {
-          cache: "no-store",
-        });
+        const response = await fetch(
+          `/api/flights?depart=${encodeURIComponent(depart)}`,
+          { cache: "no-store" }
+        );
 
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(
-            data.error || "Could not load available flights."
-          );
+          throw new Error(data.error || "Could not load available flights.");
         }
 
         if (!cancelled) {
@@ -68,9 +75,7 @@ function ResultsContent() {
       } catch (err) {
         if (!cancelled) {
           setError(
-            err instanceof Error
-              ? err.message
-              : "Something went wrong."
+            err instanceof Error ? err.message : "Something went wrong."
           );
         }
       } finally {
@@ -85,7 +90,7 @@ function ResultsContent() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [depart]);
 
   const routeFlights = useMemo(() => {
     return flights.filter(
@@ -99,9 +104,7 @@ function ResultsContent() {
     const list = [...routeFlights];
 
     if (sort === "price") {
-      list.sort(
-        (a, b) => Number(a.base_fare) - Number(b.base_fare)
-      );
+      list.sort((a, b) => Number(a.base_fare) - Number(b.base_fare));
     }
 
     if (sort === "departure") {
@@ -118,11 +121,9 @@ function ResultsContent() {
     cabin === "First Class" ? 4 : 1;
 
   function chooseFlight(flight: Flight) {
-    setSelected(flight.flight_number);
+    setSelected(flight.id);
 
-    const fare = Math.round(
-      Number(flight.base_fare) * multiplier
-    );
+    const fare = Math.round(Number(flight.base_fare) * multiplier);
 
     const bookingParams = new URLSearchParams({
       from,
@@ -133,6 +134,7 @@ function ResultsContent() {
       passengers,
       cabin,
       flight: flight.flight_number,
+      flightId: flight.id,
       aircraft: flight.aircraft,
       departure: formatTime(flight.departure_time),
       arrival: formatTime(flight.arrival_time),
@@ -334,7 +336,7 @@ function ResultsContent() {
 
             <p style={{ color: "#777", marginTop: "10px" }}>
               There are currently no active flights from {fromCode} to{" "}
-              {toCode}.
+              {toCode} on {depart}.
             </p>
 
             <a
@@ -354,9 +356,7 @@ function ResultsContent() {
         {!loading &&
           !error &&
           sortedFlights.map((flight) => {
-            const fare = Math.round(
-              Number(flight.base_fare) * multiplier
-            );
+            const fare = Math.round(Number(flight.base_fare) * multiplier);
 
             return (
               <article
@@ -364,7 +364,7 @@ function ResultsContent() {
                 style={{
                   background: "white",
                   border:
-                    selected === flight.flight_number
+                    selected === flight.id
                       ? "2px solid #bd8b48"
                       : "1px solid #e7e0d5",
                   borderRadius: "12px",
@@ -386,6 +386,9 @@ function ResultsContent() {
                     <p style={{ color: "#777", marginTop: "5px" }}>
                       {flight.aircraft}
                     </p>
+                    <small style={{ color: "#888" }}>
+                      {flight.departure_date}
+                    </small>
                   </div>
 
                   <div style={{ textAlign: "right" }}>
@@ -505,9 +508,7 @@ function ResultsContent() {
 
 export default function FlightsPage() {
   return (
-    <Suspense
-      fallback={<p style={{ padding: 30 }}>Loading flights...</p>}
-    >
+    <Suspense fallback={<p style={{ padding: 30 }}>Loading flights...</p>}>
       <ResultsContent />
     </Suspense>
   );
